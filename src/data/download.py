@@ -4,26 +4,26 @@ A script for downloading the raw data.
 """
 import argparse
 from dataclasses import dataclass
-import io
 import os
 from typing import List
 import urllib.parse
-import pyzstd
+import warnings
 
+import pyzstd
 import requests
 import tqdm
 
 # 121,332 games, 18 MB
-DOWNLOAD_URL_SMALL = "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
-DOWNLOAD_FILE_SMALL = 'small.pgn.zst'
+URL_SMALL = "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+FILE_SMALL = 'small.pgn.zst'
 
 # 1,048,440 games, 200 MB
-DOWNLOAD_URL_MEDIUM = "https://database.lichess.org/standard/lichess_db_standard_rated_2014-07.pgn.zst"
-DOWNLOAD_FILE_MEDIUM = 'medium.pgn.zst'
+URL_MEDIUM = "https://database.lichess.org/standard/lichess_db_standard_rated_2014-07.pgn.zst"
+FILE_MEDIUM = 'medium.pgn.zst'
 
 # 101,706,224 games, 33 GB
-DOWNLOAD_URL_LARGE = "https://database.lichess.org/standard/lichess_db_standard_rated_2023-04.pgn.zst"
-DOWNLOAD_FILE_LARGE = 'large.pgn.zst'
+URL_LARGE = "https://database.lichess.org/standard/lichess_db_standard_rated_2023-04.pgn.zst"
+FILE_LARGE = 'large.pgn.zst'
 
 REPOSITORY_NAME = 'natural-chess-processing'
 
@@ -50,27 +50,27 @@ def parse_args() -> ArgsTuple:
         'download.py', "Downloads the text-detoxification dataset")
     parser.add_argument('--url',
                         type=str,
-                        default=DOWNLOAD_URL_SMALL,
+                        default=URL_SMALL,
                         help='The url of the .zip file containing the dataset')
     parser.add_argument(
         '--small',
         action='store_const',
         dest='url',
-        const=DOWNLOAD_URL_SMALL,
+        const=URL_SMALL,
         help="Download small database - 127K games, 18 MB compressed",
     )
     parser.add_argument(
         '--medium',
         action='store_const',
         dest='url',
-        const=DOWNLOAD_URL_MEDIUM,
+        const=URL_MEDIUM,
         help="Download medium database - 1M games, 200 MB compressed",
     )
     parser.add_argument(
         '--large',
         action='store_const',
         dest='url',
-        const=DOWNLOAD_URL_LARGE,
+        const=URL_LARGE,
         help="Download large database - 30M games, 30 GB compressed",
     )
     parser.add_argument('--quiet',
@@ -83,7 +83,7 @@ def parse_args() -> ArgsTuple:
         '--no-guessing',
         action='store_true',
         help=
-        'Do not try to find the /data/raw directory, ' + \
+        'Do not try to find the /data directory, ' + \
         'and download directly into the output directory.'
     )
     parser.add_argument('--no-unzip',
@@ -97,12 +97,12 @@ def parse_args() -> ArgsTuple:
                         'Inferred from the download url by default.')
     args: ArgsTuple = parser.parse_args()
     if args.filename is None:
-        if args.url == DOWNLOAD_URL_SMALL:
-            args.filename = DOWNLOAD_FILE_SMALL
-        elif args.url == DOWNLOAD_URL_MEDIUM:
-            args.filename = DOWNLOAD_FILE_MEDIUM
-        elif args.url == DOWNLOAD_URL_LARGE:
-            args.filename = DOWNLOAD_FILE_LARGE
+        if args.url == URL_SMALL:
+            args.filename = FILE_SMALL
+        elif args.url == URL_MEDIUM:
+            args.filename = FILE_MEDIUM
+        elif args.url == URL_LARGE:
+            args.filename = FILE_LARGE
         else:
             path = urllib.parse.urlparse(args.url).path
             basename = os.path.basename(path)
@@ -147,13 +147,13 @@ def get_subdirectories(path: str) -> List[str]:
 
 
 def guess_data_directory(target_directory: str) -> str:
-    """Tries to find the /data/raw directory, where / is the root of the repository.
+    """Tries to find the /data directory, where / is the root of the repository.
 
     Args:
         target_directory (str): The directory from where script was called.
 
     Returns:
-        str: The absolute path to the `/data/raw` directory
+        str: The absolute path to the `/data` directory
     """
     target_directory = os.path.abspath(target_directory)
 
@@ -178,19 +178,14 @@ def guess_data_directory(target_directory: str) -> str:
             target_directory = os.path.join(target_directory, REPOSITORY_NAME)
 
     if REPOSITORY_NAME in path_directories:
-        # If the target directory is the root of the repository, create ./data/raw/ directory
+        # If the target directory is the root of the repository, create ./data/ directory
         # if it doesn't exist, and set it as a target directory
         data_dir = os.path.join(target_directory, 'data')
-        raw_data_dir = os.path.join(target_directory, 'data', 'raw')
         if os.path.exists(data_dir) and not os.path.isdir(data_dir):
             raise FileExistsError(f'{data_dir} is not a directory.')
-        if os.path.exists(raw_data_dir) and not os.path.isdir(raw_data_dir):
-            raise FileExistsError(f'{raw_data_dir} is not a directory.')
         if not os.path.exists(data_dir):
             os.mkdir(data_dir)
-        if not os.path.exists(raw_data_dir):
-            os.mkdir(raw_data_dir)
-        target_directory = raw_data_dir
+        target_directory = data_dir
 
     return target_directory
 
@@ -216,7 +211,8 @@ def download_file(target_directory: str, url: str, quiet: bool,
         if total_size == 0:
             bar_format = '{elapsed} {rate_noinv_fmt}'
         else:
-            bar_format = '{desc}: {percentage:3.0f}%|{bar}| {n:.3f}{unit}/{total:.3f}{unit} [{elapsed}<{remaining}, {rate_noinv_fmt}]'
+            bar_format = '{desc}: {percentage:3.0f}%|{bar}| {n:.3f}{unit}/{total:.3f}{unit} ' +\
+                '[{elapsed}<{remaining}, {rate_noinv_fmt}]'
         with tqdm.tqdm(total=total_size / 2**20,
                        disable=quiet,
                        unit='MB',
@@ -239,14 +235,15 @@ def unzip(file_path: str, target_directory: str, quiet: bool):
     target_file = os.path.join(target_directory, basename)
     if not file_path.endswith('.zst'):
         target_file = target_file + '.decompressed'
-        raise RuntimeWarning(
+        warnings.warn(
             f'The file {file_path} does not have the zstd file extension')
     else:
         target_file = target_file[:-4]
     if not quiet:
         print(f'Unzipping {file_path} -> {target_file}')
     total_size = os.path.getsize(file_path) / 2**20
-    bar_format = '{desc}: {percentage:3.0f}%|{bar}| {n:.3f}{unit}/{total:.3f}{unit} [{elapsed}<{remaining}, {rate_noinv_fmt}] {postfix}'
+    bar_format = '{desc}: {percentage:3.0f}%|{bar}| {n:.3f}{unit}/{total:.3f}{unit} ' +\
+        '[{elapsed}<{remaining}, {rate_noinv_fmt}] {postfix}'
     with open(file_path, 'rb') as fin, open(
             target_file, 'wb') as fout, tqdm.tqdm(total=total_size,
                                                   bar_format=bar_format,
@@ -260,7 +257,7 @@ def unzip(file_path: str, target_directory: str, quiet: bool):
             read_size = total_input
             pbar.update(delta / 2**20)
             pbar.set_postfix_str(f'Decompressed size: {total_output/2**20:.3f}MB', refresh=False)
-        pyzstd.decompress_stream(fin, fout, callback=update_pbar)
+        pyzstd.decompress_stream(fin, fout, callback=update_pbar) # pylint: disable=no-member
         pbar.refresh()
 
 
