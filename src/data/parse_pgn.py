@@ -80,7 +80,7 @@ def write_games(
     with open(out_file, encoding="utf-8", mode="w", buffering=chunk_size) as file:
         while True:
             string = out_queue.get()
-            if string is None:
+            if string == END_SIGNAL:
                 break
             file.write(string)
             file.write("\n")
@@ -191,25 +191,19 @@ def main():
     try:
         # Wait for threads to finish
         reading_thread.join()
-        pbar_lines_read.refresh()
-        pbar_lines_read.close()
         for process in worker_processes:
-            # Each worker thread exits when it recieves None.
-            in_queue.put(None)
-            in_queue.put(None)
-            # TODO figure out a real solution to process stopping
+            # Each worker thread exits when it recieves END_SIGNAL.
+            in_queue.put(END_SIGNAL)
 
         for process in worker_processes:
             process.join()
 
-        out_queue.put(None)
-        out_queue.put(None)
+        out_queue.put(END_SIGNAL)
         writing_thread.join()
-        pbar_lines_written.close()
-        pbar_lines_written.refresh()
         stop_event.set()
         info_thread.join()
-        pbar_info.refresh()
+        pbar_lines_read.close()
+        pbar_lines_written.close()
         pbar_info.close()
     except KeyboardInterrupt:
         print("Keyboard Interrupt recieved, attempting to shut down gracefully")
