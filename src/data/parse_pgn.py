@@ -9,6 +9,7 @@ from typing import Optional
 import chess.pgn
 import tqdm
 
+END_SIGNAL = None
 
 def parse_args():
     parser = argparse.ArgumentParser("pgn2csv")
@@ -64,7 +65,7 @@ def tokens_from_game_string(game_string: str) -> str:
 def process_games(in_queue: multiprocessing.Queue, out_queue: multiprocessing.Queue):
     while True:
         game_string = in_queue.get()
-        if game_string is None:
+        if game_string == END_SIGNAL:
             break
         tokens = tokens_from_game_string(game_string)
         out_queue.put(tokens)
@@ -143,7 +144,7 @@ def main():
         total=games_count, desc="Lines written", position=1)
     pbar_info = tqdm.tqdm(bar_format="{desc}", position=2)
     stop_event = threading.Event()
-    reading_process = multiprocessing.Process(
+    reading_thread = threading.Thread(
         target=read_games,
         kwargs={
             "in_queue": in_queue,
@@ -152,7 +153,7 @@ def main():
             "pbar": pbar_lines_read,
         },
     )
-    writing_process = multiprocessing.Process(
+    writing_thread = threading.Thread(
         target=write_games,
         kwargs={
             "out_queue": out_queue,
@@ -182,14 +183,14 @@ def main():
     ]
 
     # Start all the threads
-    reading_process.start()
+    reading_thread.start()
     info_thread.start()
     for worker_process in worker_processes:
         worker_process.start()
-    writing_process.start()
+    writing_thread.start()
     try:
         # Wait for threads to finish
-        reading_process.join()
+        reading_thread.join()
         pbar_lines_read.refresh()
         pbar_lines_read.close()
         for process in worker_processes:
@@ -203,7 +204,7 @@ def main():
 
         out_queue.put(None)
         out_queue.put(None)
-        writing_process.join()
+        writing_thread.join()
         pbar_lines_written.close()
         pbar_lines_written.refresh()
         stop_event.set()
