@@ -1,4 +1,5 @@
 import argparse
+from dataclasses import dataclass
 import io
 import multiprocessing
 import queue
@@ -11,7 +12,16 @@ import tqdm
 
 END_SIGNAL = None
 
-def parse_args():
+@dataclass
+class Args:
+    pgn_file: str
+    output_file: str
+    threads: int
+    queue_size: int
+    chunk_size: int
+    quiet: bool
+
+def parse_args() -> Args:
     parser = argparse.ArgumentParser("pgn2csv")
     parser.add_argument(
         "-p",
@@ -50,6 +60,12 @@ def parse_args():
         default=16 * 2**10,
         type=int,
         help="The size of chunks the file is being read in.",
+    )
+    parser.add_argument(
+        '--quiet',
+        dest='quiet',
+        action='store_true',
+        help='Do not display progress bars or pring messages',
     )
     return parser.parse_args()
 
@@ -119,37 +135,33 @@ def update_info(
 
 def main():
     args = parse_args()
-    input_file = args.pgn_file
-    output_file = args.output_file
-    threads = args.threads
-    queue_maxsize = args.queue_size
-    chunk_size = args.chunk_size
-    in_queue = multiprocessing.Queue(maxsize=queue_maxsize)
-    out_queue = multiprocessing.Queue(maxsize=queue_maxsize)
+    in_queue = multiprocessing.Queue(maxsize=args.queue_size)
+    out_queue = multiprocessing.Queue(maxsize=args.queue_size)
     lines_count = 0
     games_count = 0
-    with tqdm.tqdm(position=0, desc="Lines read") as pbar_lines, tqdm.tqdm(
-        position=1, desc="Games found"
-    ) as pbar_games, open(input_file, encoding="utf-8", buffering=chunk_size) as file:
+    with tqdm.tqdm(position=0, desc="Lines read", disable=args.quiet) as pbar_lines, tqdm.tqdm(
+        position=1, desc="Games found", disable=args.quiet
+    ) as pbar_games, open(args.pgn_file, encoding="utf-8", buffering=args.chunk_size) as file:
         for line in file:
             lines_count += 1
             if line[0] == "1":
                 games_count += 1
                 pbar_games.update(1)
             pbar_lines.update(1)
-    print(f"Counted {lines_count} lines, {games_count} games.")
+    if not args.quiet:
+        print(f"Counted {lines_count} lines, {games_count} games.")
     pbar_lines_read = tqdm.tqdm(
-        total=lines_count, desc="Lines read", position=0)
+        total=lines_count, desc="Lines read", position=0, disable=args.quiet)
     pbar_lines_written = tqdm.tqdm(
-        total=games_count, desc="Lines written", position=1)
-    pbar_info = tqdm.tqdm(bar_format="{desc}", position=2)
+        total=games_count, desc="Lines written", position=1, disable=args.quiet)
+    pbar_info = tqdm.tqdm(bar_format="{desc}", position=2, disable=args.quiet)
     stop_event = threading.Event()
     reading_thread = threading.Thread(
         target=read_games,
         kwargs={
             "in_queue": in_queue,
-            "in_file": input_file,
-            "chunk_size": chunk_size,
+            "in_file": args.pgn_file,
+            "chunk_size": args.chunk_size,
             "pbar": pbar_lines_read,
         },
     )
@@ -157,8 +169,8 @@ def main():
         target=write_games,
         kwargs={
             "out_queue": out_queue,
-            "out_file": output_file,
-            "chunk_size": chunk_size,
+            "out_file": args.output_file,
+            "chunk_size": args.chunk_size,
             "pbar": pbar_lines_written,
         },
     )
@@ -179,7 +191,7 @@ def main():
                 "out_queue": out_queue,
             },
         )
-        for i in range(threads)
+        for i in range(args.threads)
     ]
 
     # Start all the threads
