@@ -165,11 +165,11 @@ def guess_data_directory(target_directory: str) -> str:
 
     # Attempt to get to the root repository directory
     path_directories = get_path_directories(target_directory)
-    if path_directories and path_directories[-2:] == ['src', 'data']:
+    if path_directories and path_directories[-2:] == ['scripts', 'data']:
         # Check if the script is run from the same directory it is in.
         target_directory = os.path.join(*path_directories[:-2])  # pylint: disable=no-value-for-parameter
-    elif path_directories and path_directories[-1] == 'src':
-        # Check if the script is run from the src directory
+    elif path_directories and path_directories[-1] == 'scripts':
+        # Check if the script is run from the scripts directory
         target_directory = os.path.join(*path_directories[:-1])  # pylint: disable=no-value-for-parameter
     elif REPOSITORY_NAME not in path_directories:
         # If the name of the repository is not in the path, check children directories
