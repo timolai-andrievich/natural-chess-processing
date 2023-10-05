@@ -158,7 +158,7 @@ def get_all_moves_from_coordinates(x: int, y: int) -> List[str]:
     return result
 
 
-def build_vocab(specials=('<SOS>', )) -> torchtext.vocab.Vocab:
+def build_vocab(specials=('<SOS>', '<PAD>')) -> torchtext.vocab.Vocab:
     """Build vocabulary of uci move names, game results, and special symbols.
 
     Returns:
@@ -177,3 +177,6 @@ def build_vocab(specials=('<SOS>', )) -> torchtext.vocab.Vocab:
     return torchtext.vocab.vocab(vocab_dict,
                                  specials=specials,
                                  special_first=False)
+
+
+# TODO Cover move generation functions with tests.
