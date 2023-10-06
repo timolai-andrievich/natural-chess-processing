@@ -37,19 +37,6 @@ class MoveDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self._games)
 
-    @staticmethod
-    def from_file(filename: str):
-        """Reads lines from the file, and initializes the dataset with them.
-
-        Args:
-            filename (str): The name of the file contatining the games.
-
-        Returns:
-            MoveDataset: The initialized dataset.
-        """
-        with open(filename, 'r', encoding='utf-8') as file:
-            return MoveDataset(games=file.readlines())
-
 
 def bitboard_to_2d_bitboard(bitboard: chess.Bitboard) -> np.ndarray:
     """Coverts flat bitboard to numpy bool matrix.
