@@ -177,6 +177,3 @@ def build_vocab(specials=('<SOS>', '<PAD>')) -> torchtext.vocab.Vocab:
     return torchtext.vocab.vocab(vocab_dict,
                                  specials=specials,
                                  special_first=False)
-
-
-# TODO Cover move generation functions with tests.
