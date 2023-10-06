@@ -8,7 +8,7 @@ import torch
 import torch.utils.data
 import torchtext
 
-from data.vocab import build_vocab
+from src.data.vocab import build_vocab
 
 
 class MoveDataset(torch.utils.data.Dataset):

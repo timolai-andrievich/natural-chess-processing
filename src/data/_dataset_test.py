@@ -1,16 +1,19 @@
-"""Contains test functions for the `data.dataset` module."""
+"""Contains test functions for the `data.dataset` module.
+
+Run tests via `pytest src`
+"""
 import chess
 import numpy as np
 
-from data.vocab import build_vocab
-import data.dataset
-from data.dataset import encode_game, encode_position, bitboard_to_2d_bitboard
+from src.data.vocab import build_vocab
+import src.data.dataset
+from src.data.dataset import encode_game, encode_position, bitboard_to_2d_bitboard
 
 
 def test_move_dataset():
     """Tests the `MoveDataset` class.
     """
-    dataset = data.dataset.MoveDataset(
+    dataset = src.data.dataset.MoveDataset(
         games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'])
     vocab = build_vocab()
     assert len(dataset) == 3
@@ -72,12 +75,12 @@ def test_encode_position():
         [0, 0, 0, 0, 1, 0, 0, 0],
     ],
                               dtype=np.float32)
-    encoded_position = data.dataset.encode_position(position)
+    encoded_position = src.data.dataset.encode_position(position)
     assert encoded_position.shape == (17, 8, 8)
     assert np.all(expected_kings == encoded_position[5] + encoded_position[11])
 
     position.push_uci('e2e4')
-    encoded_position = data.dataset.encode_position(position)
+    encoded_position = src.data.dataset.encode_position(position)
     expected_black_pawns = np.array([
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
@@ -109,7 +112,7 @@ def test_encode_game():
 def test_position_dataset():
     """Tests `PositionDataset` class.
     """
-    dataset = data.dataset.PosiitonDataset(
+    dataset = src.data.dataset.PosiitonDataset(
         games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'])
     vocab = build_vocab()
     assert len(dataset) == 3
