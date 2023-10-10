@@ -6,13 +6,13 @@ import os
 
 import pytest
 
-import config
+from . import config
 
 EXAMPLE_CONFIG = {'model': {'name': 'Baseline'},
-                    'dataset': {'name': 'MoveDataset', 'file': 'data/small.txt'},
-                    'optimizer': {'name': 'Adam'},
-                    'scheduler': {'name': 'CosineAnnealingLR'},
-                    'training': {'batch_size': 32, 'epochs': 1000}}
+                  'dataset': {'name': 'MoveDataset', 'file': 'data/small.txt'},
+                  'optimizer': {'name': 'Adam'},
+                  'scheduler': {'name': 'CosineAnnealingLR'},
+                  'training': {'batch_size': 32, 'epochs': 1000, 'val_split': 0.1, 'sequence_length': 128}}
 
 EXAMPLE_CONFIG_TEXT = b"""
 [model]
@@ -31,7 +31,10 @@ name="CosineAnnealingLR"
 [training]
 batch_size=32
 epochs=1000
+val_split=0.1
+sequence_length=128
 """
+
 
 def test_validate_config():
     """Tests `validate_config` function.
@@ -48,6 +51,7 @@ def test_insert_default_values():
     assert inputed_config['model']['params'] == {}
     assert inputed_config['optimizer']['params'] == {}
     assert inputed_config['scheduler']['params'] == {}
+
 
 def test_parse_config():
     """Tests `parse_config` function.

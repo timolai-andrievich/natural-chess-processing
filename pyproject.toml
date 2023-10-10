@@ -535,4 +535,12 @@ ignored-argument-names = "_.*|^ignored_|^unused_"
 # builtins.
 redefining-builtins-modules = ["six.moves", "past.builtins", "future.builtins", "builtins", "io"]
 
-
+[tool.pytest.ini_options]
+# torch modules throw deprecation warnings and a couple of runtime warnings
+filterwarnings = [
+    "ignore::Warning:torchmetrics.*",
+    "ignore::Warning:torchaudio.*",
+    "ignore::Warning:torchvision.*",
+    "ignore::Warning:pkg_resources.*",
+    "ignore::Warning:lightning_utilities.*",
+]

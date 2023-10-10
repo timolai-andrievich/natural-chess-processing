@@ -56,6 +56,10 @@ def validate_config(config: Dict):
         'batch_size' in config['training'], 'Batch size is not specified')
     check_and_raise('epochs' in config['training'],
                     'Epoch count is not specified')
+    check_and_raise('val_split' in config['training'],
+                    'Validation set proportion is not specified')
+    check_and_raise('sequence_length' in config['training'],
+                    'Sequence length is not specified')
 
 
 def insert_default_values(config: Dict) -> Dict:

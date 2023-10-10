@@ -112,7 +112,7 @@ def test_encode_game():
 def test_position_dataset():
     """Tests `PositionDataset` class.
     """
-    dataset = src.data.dataset.PosiitonDataset(
+    dataset = src.data.dataset.PositionDataset(
         games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'])
     vocab = build_vocab()
     assert len(dataset) == 3
