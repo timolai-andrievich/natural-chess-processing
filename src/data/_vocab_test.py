@@ -1,8 +1,11 @@
-"""Contains test functions for the `data.vocab` module."""
+"""Contains test functions for the `data.vocab` module.
+
+Run tests via `pytest src`
+"""
 import pytest
 import torchtext
 
-from data import vocab
+from src.data import vocab
 
 
 def test_cell_names():
