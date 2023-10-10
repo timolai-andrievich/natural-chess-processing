@@ -65,6 +65,7 @@ def test_get_dataset():
 def test_training_loop():
     """Tests `TrainingLoop` class.
     """
+    torch.manual_seed(42)
     games_text = """e2e4 1-0
     e2e4 1-0
     """
@@ -83,7 +84,7 @@ def test_training_loop():
         },
         'optimizer': {
             'name': 'Adam',
-            'params': {}
+            'params': {'lr': 1e-4}
         },
         'scheduler': {
             'name': 'ConstantLR',
@@ -93,9 +94,9 @@ def test_training_loop():
         },
         'training': {
             'batch_size': 32,
-            'epochs': 100,
+            'epochs': 1000,
             'val_split': 0.5,
-            'sequence_length': 128
+            'sequence_length': 8
         }
     }
 
@@ -119,5 +120,63 @@ def test_training_loop():
     final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
 
+def test_cuda_training_loop():
+    """Tests `TrainingLoop` class on a CUDA device, if 
+    one is available.
+    """
+    if not torch.cuda.is_available():
+        return
+    torch.manual_seed(42)
+    games_text = """e2e4 1-0
+    e2e4 1-0
+    """
+    temp_file = 'temp.txt'
+    config = {
+        'model': {
+            'name': 'Baseline',
+            'params': {
+                'd_model': 16,
+                'vocab_size': 1973
+            }
+        },
+        'dataset': {
+            'name': 'MoveDataset',
+            'file': temp_file
+        },
+        'optimizer': {
+            'name': 'Adam',
+            'params': {'lr': 1e-4}
+        },
+        'scheduler': {
+            'name': 'ConstantLR',
+            'params': {
+                'factor': 1
+            }
+        },
+        'training': {
+            'batch_size': 32,
+            'epochs': 1000,
+            'val_split': 0.5,
+            'sequence_length': 8
+        }
+    }
 
-# TODO test on CUDA
+    # Set up the dataset file.
+    try:
+        with open(temp_file, 'w', encoding='utf-8') as file:
+            file.write(games_text)
+        loop = training_loop.TrainingLoop(config, device='cuda')
+    finally:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+
+    # Check class attributes
+    assert len(loop._val_loader) == 1 # pylint:disable=protected-access
+    assert len(loop._train_loader) == 1 # pylint:disable=protected-access
+    assert isinstance(loop.get_model(), models.Baseline)
+
+    # Check that model overfits on a small dataset
+    initial_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
+    loop.run(quiet=True)
+    final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
+    assert final_accuracy > initial_accuracy

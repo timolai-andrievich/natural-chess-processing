@@ -193,7 +193,7 @@ class TrainingLoop:
         """
         accuracy = torchmetrics.Accuracy(task='MULTICLASS',
                                          ignore_index=self._pad_index,
-                                         num_classes=len(self._vocab))
+                                         num_classes=len(self._vocab)).to(self._device)
         total = 0
         accumulated_accuracy = 0
         self._model.eval()
@@ -202,6 +202,8 @@ class TrainingLoop:
                          disable=quiet,
                          desc='Calculating validation set metrics')
         for inputs, targets in self._val_loader:
+            inputs = inputs.to(self._device)
+            targets = inputs.to(self._device)
             pred = self._model(inputs)
             total += len(inputs)
             accumulated_accuracy += len(inputs) * \
