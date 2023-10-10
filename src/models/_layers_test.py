@@ -6,6 +6,7 @@ import torch
 
 from src.models import layers
 
+
 def test_positional_encoding():
     """Tests `PositionalEncoding` class.
     """
