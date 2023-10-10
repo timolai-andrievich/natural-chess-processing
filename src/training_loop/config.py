@@ -29,6 +29,7 @@ def validate_config(config: Dict):
     Raises:
         InvalidConfigError: Error with information why the config is invalid.
     """
+
     def check_and_raise(condition, message):
         if not condition:
             raise InvalidConfigError(message)
@@ -52,8 +53,8 @@ def validate_config(config: Dict):
 
     check_and_raise('training' in config,
                     'Training parameters are not specified')
-    check_and_raise(
-        'batch_size' in config['training'], 'Batch size is not specified')
+    check_and_raise('batch_size' in config['training'],
+                    'Batch size is not specified')
     check_and_raise('epochs' in config['training'],
                     'Epoch count is not specified')
     check_and_raise('val_split' in config['training'],

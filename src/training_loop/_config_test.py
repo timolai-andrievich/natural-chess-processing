@@ -8,11 +8,27 @@ import pytest
 
 from . import config
 
-EXAMPLE_CONFIG = {'model': {'name': 'Baseline'},
-                  'dataset': {'name': 'MoveDataset', 'file': 'data/small.txt'},
-                  'optimizer': {'name': 'Adam'},
-                  'scheduler': {'name': 'CosineAnnealingLR'},
-                  'training': {'batch_size': 32, 'epochs': 1000, 'val_split': 0.1, 'sequence_length': 128}}
+EXAMPLE_CONFIG = {
+    'model': {
+        'name': 'Baseline'
+    },
+    'dataset': {
+        'name': 'MoveDataset',
+        'file': 'data/small.txt'
+    },
+    'optimizer': {
+        'name': 'Adam'
+    },
+    'scheduler': {
+        'name': 'CosineAnnealingLR'
+    },
+    'training': {
+        'batch_size': 32,
+        'epochs': 1000,
+        'val_split': 0.1,
+        'sequence_length': 128
+    }
+}
 
 EXAMPLE_CONFIG_TEXT = b"""
 [model]

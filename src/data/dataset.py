@@ -12,6 +12,7 @@ from src.data.vocab import build_vocab
 
 #TODO add vocab argument to dataset initialization
 
+
 class MoveDataset(torch.utils.data.Dataset):
     """A dataset of chess uci moves.
     
@@ -29,7 +30,7 @@ class MoveDataset(torch.utils.data.Dataset):
         self._games = []
         self._vocab = build_vocab()
         for game in games:
-            if not game: 
+            if not game:
                 continue
             moves = game.split(' ')
             self._games.append(self._vocab(moves))
@@ -194,7 +195,7 @@ class PositionDataset(torch.utils.data.Dataset):
         self._games_positions = []
         self._games_moves = []
         for game in games:
-            if not game: 
+            if not game:
                 continue
             positions, moves = encode_game(game, self._vocab)
             self._games_positions.append(positions)

@@ -3,6 +3,7 @@
 import torch
 from torch import nn
 
+
 class Baseline(nn.Module):
     """Baseline model.
     

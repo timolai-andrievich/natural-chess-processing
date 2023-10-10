@@ -14,29 +14,37 @@ from .. import models
 def test_get_model():
     """Tests the `get_model` function.
     """
-    minimal_config = {'model': {'name': 'Baseline',
-                                'params': {'d_model': 16, 'vocab_size': 12}}}
+    minimal_config = {
+        'model': {
+            'name': 'Baseline',
+            'params': {
+                'd_model': 16,
+                'vocab_size': 12
+            }
+        }
+    }
     model = training_loop.get_model(minimal_config)
     assert isinstance(model, models.Baseline)
+
 
 def test_get_optimizer():
     """Tests the `get_optimizer` function.
     """
-    minimal_config = {'optimizer': {'name': 'Adam',
-                                'params': {}}}
+    minimal_config = {'optimizer': {'name': 'Adam', 'params': {}}}
     model = torch.nn.Linear(1, 1)
     optimizer = training_loop.get_optimizer(minimal_config, model)
     assert isinstance(optimizer, torch.optim.Adam)
 
+
 def test_get_scheduler():
     """Tests the `get_scheduler` function.
     """
-    minimal_config = {'scheduler': {'name': 'LinearLR',
-                                'params': {}}}
+    minimal_config = {'scheduler': {'name': 'LinearLR', 'params': {}}}
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.Adam(model.parameters())
     scheduler = training_loop.get_scheduler(minimal_config, optimizer)
     assert isinstance(scheduler, torch.optim.lr_scheduler.LinearLR)
+
 
 def test_get_dataset():
     """Tests the `get_dataset` function.
@@ -53,6 +61,7 @@ def test_get_dataset():
             os.remove(temp_file)
     assert isinstance(dataset, data.MoveDataset)
 
+
 def test_training_loop():
     """Tests `TrainingLoop` class.
     """
@@ -60,11 +69,35 @@ def test_training_loop():
     e2e4 1-0
     """
     temp_file = 'temp.txt'
-    config = {'model': {'name': 'Baseline', 'params': {'d_model': 16, 'vocab_size': 1973}},
-            'dataset': {'name': 'MoveDataset', 'file': temp_file},
-            'optimizer': {'name': 'Adam', 'params': {}},
-            'scheduler': {'name': 'ConstantLR', 'params': {'factor': 1}},
-            'training': {'batch_size': 32, 'epochs': 100, 'val_split': 0.5, 'sequence_length': 128}}
+    config = {
+        'model': {
+            'name': 'Baseline',
+            'params': {
+                'd_model': 16,
+                'vocab_size': 1973
+            }
+        },
+        'dataset': {
+            'name': 'MoveDataset',
+            'file': temp_file
+        },
+        'optimizer': {
+            'name': 'Adam',
+            'params': {}
+        },
+        'scheduler': {
+            'name': 'ConstantLR',
+            'params': {
+                'factor': 1
+            }
+        },
+        'training': {
+            'batch_size': 32,
+            'epochs': 100,
+            'val_split': 0.5,
+            'sequence_length': 128
+        }
+    }
 
     # Set up the dataset file.
     try:
@@ -74,7 +107,7 @@ def test_training_loop():
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
-    
+
     # Check class attributes
     assert len(loop.val_loader) == 1
     assert len(loop.train_loader) == 1
@@ -86,5 +119,5 @@ def test_training_loop():
     final_accuracy = loop._get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
 
-        
+
 # TODO test on CUDA

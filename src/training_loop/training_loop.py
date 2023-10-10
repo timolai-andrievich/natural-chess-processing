@@ -81,6 +81,7 @@ def get_dataset(config: Dict) -> torch.utils.data.Dataset:
 class TrainingLoop:
     """Trains the model according to parameters passed in config.
     """
+
     # TODO add validation
 
     def __init__(self, config: Dict, device: Optional[str] = None):
@@ -113,11 +114,14 @@ class TrainingLoop:
         train_dataset, val_dataset = torch.utils.data.random_split(
             self.dataset, [train_len, val_len])
         self.train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
+            train_dataset,
+            batch_size=batch_size,
+            collate_fn=self._collate_batch)
         self.val_loader = torch.utils.data.DataLoader(
             val_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
 
-    def _collate_batch(self, batch: List[List[int]]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _collate_batch(
+            self, batch: List[List[int]]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Collates batch of moves, and returns padded tensors with move. 
 
         Args:
@@ -140,7 +144,8 @@ class TrainingLoop:
         y = torch.tensor(y)
         return x, y
 
-    def _loss_fn(self, inputs: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def _loss_fn(self, inputs: torch.Tensor,
+                 target: torch.Tensor) -> torch.Tensor:
         """Calculates cross-entropy between the inputs and the target while ignoring
         the padding.
 
@@ -151,7 +156,9 @@ class TrainingLoop:
         Returns:
             torch.Tensor: Mean crossentropy over batch.
         """
-        return nn.functional.cross_entropy(inputs, target, ignore_index=self.pad_index)
+        return nn.functional.cross_entropy(inputs,
+                                           target,
+                                           ignore_index=self.pad_index)
 
     def _train_step(self, inputs: torch.Tensor, target: torch.Tensor) -> float:
         """Makes a train step over the minibatch.
@@ -183,13 +190,16 @@ class TrainingLoop:
             Dict[str, float]: Dictionary mapping name of the metric to
             the value of the metric.
         """
-        accuracy = torchmetrics.Accuracy(
-            task='MULTICLASS', ignore_index=self.pad_index, num_classes=len(self.vocab))
+        accuracy = torchmetrics.Accuracy(task='MULTICLASS',
+                                         ignore_index=self.pad_index,
+                                         num_classes=len(self.vocab))
         total = 0
         accumulated_accuracy = 0
         self.model.eval()
-        pbar = tqdm.tqdm(total=len(self.val_loader), position=1,
-                         disable=quiet, desc='Calculating validation set metrics')
+        pbar = tqdm.tqdm(total=len(self.val_loader),
+                         position=1,
+                         disable=quiet,
+                         desc='Calculating validation set metrics')
         for inputs, targets in self.val_loader:
             pred = self.model(inputs)
             total += len(inputs)
@@ -207,7 +217,8 @@ class TrainingLoop:
         """
         epochs = self.config['training']['epochs']
         pbar = tqdm.tqdm(total=epochs * len(self.train_loader),
-                         position=0, disable=quiet)
+                         position=0,
+                         disable=quiet)
         pbar.set_description('Training loop')
         for epoch in range(epochs):
             self.model.train()
@@ -218,8 +229,12 @@ class TrainingLoop:
                 pbar.update(1)
             self.model.eval()
             metrics = self._get_validation_metrics(quiet)
-            metrics.update({'Training loss': torch.mean(
-                torch.tensor(training_losses)).item(), 'Epoch': epoch})
+            metrics.update({
+                'Training loss':
+                torch.mean(torch.tensor(training_losses)).item(),
+                'Epoch':
+                epoch
+            })
             pbar.set_postfix(metrics)
         pbar.close()
 
