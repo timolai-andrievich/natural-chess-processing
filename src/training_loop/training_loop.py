@@ -83,6 +83,7 @@ class TrainingLoop:
     """
 
     # TODO add validation
+    # TODO add callbacks
 
     def __init__(self, config: Dict, device: Optional[str] = None):
         """Trains the model according to parameters passed in config.
@@ -94,30 +95,30 @@ class TrainingLoop:
         """
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.device = device
-        self.model: nn.Module = get_model(config).to(self.device)
-        self.optimizer: torch.optim.Optimizer = get_optimizer(
-            config, self.model)
-        self.scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
-            config, self.optimizer)
-        self.dataset: torch.utils.data.Dataset = get_dataset(config)
-        self.config = config
-        self.vocab = data.build_vocab()
-        self.pad_index = self.vocab.get_stoi()['<PAD>']
-        self.sos_index = self.vocab.get_stoi()['<SOS>']
+        self._device = device
+        self._model: nn.Module = get_model(config).to(self._device)
+        self._optimizer: torch.optim.Optimizer = get_optimizer(
+            config, self._model)
+        self._scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
+            config, self._optimizer)
+        self._dataset: torch.utils.data.Dataset = get_dataset(config)
+        self._config = config
+        self._vocab = data.build_vocab()
+        self._pad_index = self._vocab.get_stoi()['<PAD>']
+        self._sos_index = self._vocab.get_stoi()['<SOS>']
 
         # Initialize dataset loaders
-        batch_size = self.config['training']['batch_size']
-        total_len = len(self.dataset)
-        val_len = int(total_len * self.config['training']['val_split'])
+        batch_size = self._config['training']['batch_size']
+        total_len = len(self._dataset)
+        val_len = int(total_len * self._config['training']['val_split'])
         train_len = total_len - val_len
         train_dataset, val_dataset = torch.utils.data.random_split(
-            self.dataset, [train_len, val_len])
-        self.train_loader = torch.utils.data.DataLoader(
+            self._dataset, [train_len, val_len])
+        self._train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
             collate_fn=self._collate_batch)
-        self.val_loader = torch.utils.data.DataLoader(
+        self._val_loader = torch.utils.data.DataLoader(
             val_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
 
     def _collate_batch(
@@ -132,11 +133,11 @@ class TrainingLoop:
         """
         inputs = []
         targets = []
-        seq_len = self.config['training']['sequence_length']
+        seq_len = self._config['training']['sequence_length']
         for game in batch:
-            game = [self.sos_index] + game
+            game = [self._sos_index] + game
             game = game[:seq_len + 1]
-            game += [self.pad_index] * (seq_len - len(game))
+            game += [self._pad_index] * (seq_len - len(game))
             x, y = game[:-1], game[1:]
             inputs.append(x)
             targets.append(y)
@@ -158,7 +159,7 @@ class TrainingLoop:
         """
         return nn.functional.cross_entropy(inputs,
                                            target,
-                                           ignore_index=self.pad_index)
+                                           ignore_index=self._pad_index)
 
     def _train_step(self, inputs: torch.Tensor, target: torch.Tensor) -> float:
         """Makes a train step over the minibatch.
@@ -170,17 +171,17 @@ class TrainingLoop:
         Returns:
             float: Minibatch loss.
         """
-        inputs = inputs.to(self.device)
-        target = target.to(self.device)
-        pred = self.model(inputs)
+        inputs = inputs.to(self._device)
+        target = target.to(self._device)
+        pred = self._model(inputs)
         loss = self._loss_fn(pred, target)
-        self.optimizer.zero_grad()
+        self._optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
-        self.scheduler.step()
+        self._optimizer.step()
+        self._scheduler.step()
         return loss.detach().cpu().item()
 
-    def _get_validation_metrics(self, quiet: bool) -> Dict[str, float]:
+    def get_validation_metrics(self, quiet: bool) -> Dict[str, float]:
         """Calculates metrics over validation set.
 
         Args:
@@ -191,17 +192,17 @@ class TrainingLoop:
             the value of the metric.
         """
         accuracy = torchmetrics.Accuracy(task='MULTICLASS',
-                                         ignore_index=self.pad_index,
-                                         num_classes=len(self.vocab))
+                                         ignore_index=self._pad_index,
+                                         num_classes=len(self._vocab))
         total = 0
         accumulated_accuracy = 0
-        self.model.eval()
-        pbar = tqdm.tqdm(total=len(self.val_loader),
+        self._model.eval()
+        pbar = tqdm.tqdm(total=len(self._val_loader),
                          position=1,
                          disable=quiet,
                          desc='Calculating validation set metrics')
-        for inputs, targets in self.val_loader:
-            pred = self.model(inputs)
+        for inputs, targets in self._val_loader:
+            pred = self._model(inputs)
             total += len(inputs)
             accumulated_accuracy += len(inputs) * \
                 accuracy(pred, targets).detach().cpu().item()
@@ -215,20 +216,20 @@ class TrainingLoop:
         Args:
             quiet (bool, optional): Whether to show the progress bar or not. Defaults to False.
         """
-        epochs = self.config['training']['epochs']
-        pbar = tqdm.tqdm(total=epochs * len(self.train_loader),
+        epochs = self._config['training']['epochs']
+        pbar = tqdm.tqdm(total=epochs * len(self._train_loader),
                          position=0,
                          disable=quiet)
         pbar.set_description('Training loop')
         for epoch in range(epochs):
-            self.model.train()
+            self._model.train()
             training_losses = []
-            for inputs, target in self.train_loader:
+            for inputs, target in self._train_loader:
                 minibatch_loss = self._train_step(inputs, target)
                 training_losses.append(minibatch_loss)
                 pbar.update(1)
-            self.model.eval()
-            metrics = self._get_validation_metrics(quiet)
+            self._model.eval()
+            metrics = self.get_validation_metrics(quiet)
             metrics.update({
                 'Training loss':
                 torch.mean(torch.tensor(training_losses)).item(),
@@ -244,4 +245,4 @@ class TrainingLoop:
         Returns:
             nn.Module: Model in the training loop.
         """
-        return self.model
+        return self._model

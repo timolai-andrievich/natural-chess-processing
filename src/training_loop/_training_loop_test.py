@@ -109,14 +109,14 @@ def test_training_loop():
             os.remove(temp_file)
 
     # Check class attributes
-    assert len(loop.val_loader) == 1
-    assert len(loop.train_loader) == 1
+    assert len(loop._val_loader) == 1 # pylint:disable=protected-access
+    assert len(loop._train_loader) == 1 # pylint:disable=protected-access
     assert isinstance(loop.get_model(), models.Baseline)
 
     # Check that model overfits on a small dataset
-    initial_accuracy = loop._get_validation_metrics(quiet=True)['Accuracy']
+    initial_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     loop.run(quiet=True)
-    final_accuracy = loop._get_validation_metrics(quiet=True)['Accuracy']
+    final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
 
 
