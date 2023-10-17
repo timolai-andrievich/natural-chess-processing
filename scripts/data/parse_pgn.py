@@ -193,7 +193,7 @@ def update_info(
         time.sleep(1)
 
 
-def main():
+def main(): # pylint:disable=too-many-locals
     """Main function of the scripts. Handles multithreading and multiprocessing.
     """
     args = parse_args()

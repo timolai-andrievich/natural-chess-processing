@@ -8,8 +8,6 @@ import torch
 import torch.utils.data
 import torchtext
 
-from src.data.vocab import build_vocab
-
 
 class MoveDataset(torch.utils.data.Dataset):
     """A dataset of chess uci moves.
@@ -17,17 +15,22 @@ class MoveDataset(torch.utils.data.Dataset):
     Contains sequences of integers corresponding to moves.
     """
 
-    def __init__(self, games: List[str]):
+    def __init__(self, games: List[str], vocab: torchtext.vocab.Vocab):
         """Initializes dataset from the passed games. Games are not
         padded and may have varying length.
 
         Args:
             games (List[str]): The list of strings, containing
             chess moves in uci format, separated by spaces.
+            vocab (Vocab, optional): Vocabulary used to tokenize
+            moves. If None, uses vocabulary returned by build_vocab
+            function.
         """
         self._games = []
-        self._vocab = build_vocab()
+        self._vocab = vocab
         for game in games:
+            if not game:
+                continue
             moves = game.split(' ')
             self._games.append(self._vocab(moves))
 
@@ -168,7 +171,7 @@ def encode_game(
     return encoded_positions, encoded_moves
 
 
-class PosiitonDataset(torch.utils.data.Dataset):
+class PositionDataset(torch.utils.data.Dataset):
     """A dataset of chess position and moves made from them.
     
     Contains encoded positions and corresponding moves.
@@ -177,7 +180,7 @@ class PosiitonDataset(torch.utils.data.Dataset):
     code for details.
     """
 
-    def __init__(self, games: List[str]):
+    def __init__(self, games: List[str], vocab: torchtext.vocab.Vocab):
         """Initializes dataset from the passed games. Games are not
         padded and may have varying length. When indexed with index `i`,
         returns tuple of list encoded positions and list of encoded
@@ -186,11 +189,14 @@ class PosiitonDataset(torch.utils.data.Dataset):
         Args:
             games (List[str]): The list of strings, containing
             chess moves in uci format, separated by spaces.
+            vocab (Vocab): Vocabulary used to tokenize moves.
         """
-        self._vocab = build_vocab()
+        self._vocab = vocab
         self._games_positions = []
         self._games_moves = []
         for game in games:
+            if not game:
+                continue
             positions, moves = encode_game(game, self._vocab)
             self._games_positions.append(positions)
             self._games_moves.append(moves)

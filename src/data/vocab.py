@@ -162,7 +162,7 @@ def build_vocab(specials=('<SOS>', '<PAD>')) -> torchtext.vocab.Vocab:
     """Build vocabulary of uci move names, game results, and special symbols.
 
     Returns:
-        torchtext.vocab.Vocab: _description_
+        torchtext.vocab.Vocab: Torchtext vocabulary of UCI moves.
     """
     vocab_dict = {}
     moves = []
