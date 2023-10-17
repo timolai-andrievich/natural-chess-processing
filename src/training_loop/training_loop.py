@@ -81,7 +81,7 @@ def get_dataset(config: Dict,
     return dataset_class(games, vocab=vocab)
 
 
-class TrainingLoop: #pylint: disable=too-many-instance-attributes
+class TrainingLoop:  #pylint: disable=too-many-instance-attributes
     """Trains the model according to parameters passed in config.
     """
 
