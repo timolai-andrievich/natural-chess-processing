@@ -7,6 +7,7 @@ import tqdm
 from torch import nn
 import torch.utils.data
 import torchmetrics
+import torchtext
 
 from .. import data
 from .. import models
@@ -61,11 +62,12 @@ def get_scheduler(
     return scheduler_class(optimizer=optimizer, **scheduler_params)
 
 
-def get_dataset(config: Dict) -> torch.utils.data.Dataset:
+def get_dataset(config: Dict, vocab: torchtext.vocab.Vocab) -> torch.utils.data.Dataset:
     """Reads data and returns dataset with it inside.
 
     Args:
         config (Dict): Config dictionary.
+        vocab (Vocab): Vocabulary used to tokenize moves.
 
     Returns:
         Dataset: `torch` dataset in format specified in config.
@@ -75,7 +77,7 @@ def get_dataset(config: Dict) -> torch.utils.data.Dataset:
     dataset_class = data.__dict__[dataset_name]
     with open(dataset_file, 'r', encoding='utf-8') as file:
         games = [line.strip() for line in file]
-    return dataset_class(games)
+    return dataset_class(games, vocab=vocab)
 
 
 class TrainingLoop:
@@ -93,14 +95,14 @@ class TrainingLoop:
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self._device = device
+        self._vocab = data.build_vocab()
         self._model: nn.Module = get_model(config).to(self._device)
         self._optimizer: torch.optim.Optimizer = get_optimizer(
             config, self._model)
         self._scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
             config, self._optimizer)
-        self._dataset: torch.utils.data.Dataset = get_dataset(config)
+        self._dataset: torch.utils.data.Dataset = get_dataset(config, self._vocab)
         self._config = config
-        self._vocab = data.build_vocab()
         self._pad_index = self._vocab.get_stoi()['<PAD>']
         self._sos_index = self._vocab.get_stoi()['<SOS>']
 
