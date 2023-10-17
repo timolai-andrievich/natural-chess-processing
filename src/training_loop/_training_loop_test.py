@@ -84,7 +84,9 @@ def test_training_loop():
         },
         'optimizer': {
             'name': 'Adam',
-            'params': {'lr': 1e-4}
+            'params': {
+                'lr': 1e-4
+            }
         },
         'scheduler': {
             'name': 'ConstantLR',
@@ -110,8 +112,8 @@ def test_training_loop():
             os.remove(temp_file)
 
     # Check class attributes
-    assert len(loop._val_loader) == 1 # pylint:disable=protected-access
-    assert len(loop._train_loader) == 1 # pylint:disable=protected-access
+    assert len(loop._val_loader) == 1  # pylint:disable=protected-access
+    assert len(loop._train_loader) == 1  # pylint:disable=protected-access
     assert isinstance(loop.get_model(), models.Baseline)
 
     # Check that model overfits on a small dataset
@@ -119,6 +121,7 @@ def test_training_loop():
     loop.run(quiet=True)
     final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
+
 
 def test_cuda_training_loop():
     """Tests `TrainingLoop` class on a CUDA device, if 
@@ -145,7 +148,9 @@ def test_cuda_training_loop():
         },
         'optimizer': {
             'name': 'Adam',
-            'params': {'lr': 1e-4}
+            'params': {
+                'lr': 1e-4
+            }
         },
         'scheduler': {
             'name': 'ConstantLR',
@@ -154,7 +159,7 @@ def test_cuda_training_loop():
             }
         },
         'training': {
-            'batch_size': 32,
+            'batch_size': 1,
             'epochs': 1000,
             'val_split': 0.5,
             'sequence_length': 8
@@ -171,12 +176,28 @@ def test_cuda_training_loop():
             os.remove(temp_file)
 
     # Check class attributes
-    assert len(loop._val_loader) == 1 # pylint:disable=protected-access
-    assert len(loop._train_loader) == 1 # pylint:disable=protected-access
+    assert len(loop._val_loader) == 1  # pylint:disable=protected-access
+    assert len(loop._train_loader) == 1  # pylint:disable=protected-access
     assert isinstance(loop.get_model(), models.Baseline)
+
+    class Counter:
+
+        def __init__(self):
+            self.value = 0
+
+        def increment(self):
+            self.value += 1
+
+    epoch_counter = Counter()
+    batch_counter = Counter()
 
     # Check that model overfits on a small dataset
     initial_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
-    loop.run(quiet=True)
+    loop.run(quiet=True,
+             batch_callback=batch_counter.increment,
+             epoch_callback=epoch_counter.increment)
     final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
+    assert batch_counter.value == len(
+        loop._train_loader) * config['training']['epochs']
+    assert epoch_counter.value == config['training']['epochs']

@@ -1,6 +1,6 @@
 """Module with training loop logic.
 """
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple, List, Optional, Callable
 
 import torch
 import tqdm
@@ -81,9 +81,6 @@ def get_dataset(config: Dict) -> torch.utils.data.Dataset:
 class TrainingLoop:
     """Trains the model according to parameters passed in config.
     """
-
-    # TODO add validation
-    # TODO add callbacks
 
     def __init__(self, config: Dict, device: Optional[str] = None):
         """Trains the model according to parameters passed in config.
@@ -193,7 +190,8 @@ class TrainingLoop:
         """
         accuracy = torchmetrics.Accuracy(task='MULTICLASS',
                                          ignore_index=self._pad_index,
-                                         num_classes=len(self._vocab)).to(self._device)
+                                         num_classes=len(self._vocab)).to(
+                                             self._device)
         total = 0
         accumulated_accuracy = 0
         self._model.eval()
@@ -206,18 +204,37 @@ class TrainingLoop:
             targets = inputs.to(self._device)
             pred = self._model(inputs)
             total += len(inputs)
-            accumulated_accuracy += len(inputs) * \
-                accuracy(pred, targets).detach().cpu().item()
+            accumulated_accuracy += len(inputs) * accuracy(  # pylint:disable=not-callable
+                pred, targets).detach().cpu().item()
             pbar.update(1)
         pbar.close()
         return {'Accuracy': accumulated_accuracy / total}
 
-    def run(self, quiet: bool = False):
+    def run(self,
+            quiet: bool = False,
+            *,
+            batch_callback: Optional[Callable[[], None]] = None,
+            epoch_callback: Optional[Callable[[], None]] = None):
         """Run the training loop.
 
         Args:
-            quiet (bool, optional): Whether to show the progress bar or not. Defaults to False.
+            quiet (bool, optional): Whether to show the progress bar or not.
+            Defaults to False.
+            batch_callback (Callable[[], None], optional): Function that should
+            be called after processing a batch.
+            epoch_callback (Callable[[], None], optional): Function that should
+            be called after every epoch.
         """
+        if batch_callback is None:
+
+            def batch_callback():
+                pass
+
+        if epoch_callback is None:
+
+            def epoch_callback():
+                pass
+
         epochs = self._config['training']['epochs']
         pbar = tqdm.tqdm(total=epochs * len(self._train_loader),
                          position=0,
@@ -230,6 +247,8 @@ class TrainingLoop:
                 minibatch_loss = self._train_step(inputs, target)
                 training_losses.append(minibatch_loss)
                 pbar.update(1)
+                batch_callback()
+            epoch_callback()
             self._model.eval()
             metrics = self.get_validation_metrics(quiet)
             metrics.update({
