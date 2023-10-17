@@ -96,4 +96,5 @@ def parse_config(file_name: str) -> Dict:
     with open(file_name, 'rb') as file:
         config = tomllib.load(file)
     validate_config(config)
+    config = insert_default_values(config)
     return config

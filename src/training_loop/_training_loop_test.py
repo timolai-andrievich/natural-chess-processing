@@ -23,7 +23,7 @@ def test_get_model():
             }
         }
     }
-    model = training_loop.get_model(minimal_config)
+    model = training_loop.get_model(minimal_config, vocab_size=1)
     assert isinstance(model, models.Baseline)
 
 
