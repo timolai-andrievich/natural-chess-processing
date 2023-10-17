@@ -15,8 +15,7 @@ def test_move_dataset():
     """
     vocab = build_vocab()
     dataset = src.data.dataset.MoveDataset(
-        games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'],
-        vocab=vocab)
+        games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'], vocab=vocab)
     assert len(dataset) == 3
     assert dataset[0][0] == vocab.get_stoi()['e2e4']
     assert dataset[1][1] == vocab.get_stoi()['e7e5']
@@ -115,9 +114,7 @@ def test_position_dataset():
     """
     vocab = build_vocab()
     dataset = src.data.dataset.PositionDataset(
-        games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'],
-        vocab=vocab
-    )
+        games=['e2e4', 'e2e4 e7e5', 'e2e4 e7e5 g1f3'], vocab=vocab)
     assert len(dataset) == 3
     assert dataset[0][1][0] == vocab.get_stoi()['e2e4']
     assert dataset[0][0][0].shape == (17, 8, 8)

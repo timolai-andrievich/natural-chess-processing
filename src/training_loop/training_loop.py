@@ -62,7 +62,8 @@ def get_scheduler(
     return scheduler_class(optimizer=optimizer, **scheduler_params)
 
 
-def get_dataset(config: Dict, vocab: torchtext.vocab.Vocab) -> torch.utils.data.Dataset:
+def get_dataset(config: Dict,
+                vocab: torchtext.vocab.Vocab) -> torch.utils.data.Dataset:
     """Reads data and returns dataset with it inside.
 
     Args:
@@ -80,7 +81,7 @@ def get_dataset(config: Dict, vocab: torchtext.vocab.Vocab) -> torch.utils.data.
     return dataset_class(games, vocab=vocab)
 
 
-class TrainingLoop:
+class TrainingLoop: #pylint: disable=too-many-instance-attributes
     """Trains the model according to parameters passed in config.
     """
 
@@ -101,18 +102,18 @@ class TrainingLoop:
             config, self._model)
         self._scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
             config, self._optimizer)
-        self._dataset: torch.utils.data.Dataset = get_dataset(config, self._vocab)
+        dataset: torch.utils.data.Dataset = get_dataset(config, self._vocab)
         self._config = config
         self._pad_index = self._vocab.get_stoi()['<PAD>']
         self._sos_index = self._vocab.get_stoi()['<SOS>']
 
         # Initialize dataset loaders
         batch_size = self._config['training']['batch_size']
-        total_len = len(self._dataset)
+        total_len = len(dataset)
         val_len = int(total_len * self._config['training']['val_split'])
         train_len = total_len - val_len
         train_dataset, val_dataset = torch.utils.data.random_split(
-            self._dataset, [train_len, val_len])
+            dataset, [train_len, val_len])
         self._train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,

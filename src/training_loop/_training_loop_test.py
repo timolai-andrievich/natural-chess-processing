@@ -181,7 +181,7 @@ def test_cuda_training_loop():
     assert len(loop._train_loader) == 1  # pylint:disable=protected-access
     assert isinstance(loop.get_model(), models.Baseline)
 
-    class Counter: # pylint:disable=too-few-public-methods
+    class Counter:  # pylint:disable=too-few-public-methods
         """A simple class that implements a counter.
         """
 
@@ -206,5 +206,5 @@ def test_cuda_training_loop():
     final_accuracy = loop.get_validation_metrics(quiet=True)['Accuracy']
     assert final_accuracy > initial_accuracy
     assert batch_counter.value == len(
-        loop._train_loader) * config['training']['epochs'] # pylint:disable=protected-access
+        loop._train_loader) * config['training']['epochs']  # pylint:disable=protected-access
     assert epoch_counter.value == config['training']['epochs']

@@ -8,6 +8,7 @@ import torch
 import torch.utils.data
 import torchtext
 
+
 class MoveDataset(torch.utils.data.Dataset):
     """A dataset of chess uci moves.
     
