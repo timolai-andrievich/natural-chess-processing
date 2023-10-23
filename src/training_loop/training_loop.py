@@ -238,19 +238,19 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         Args:
             quiet (bool, optional): Whether to show the progress bar or not.
             Defaults to False.
-            batch_callback (Callable[[], None], optional): Function that should
-            be called after processing a batch.
-            epoch_callback (Callable[[], None], optional): Function that should
-            be called after every epoch.
+            batch_callback (Callable[[Dict[str, float]], None], optional):
+            Function that will be called after processing a batch.
+            epoch_callback (Callable[[Dict[str, float]], None], optional):
+            Function that will be called after every epoch.
         """
         if batch_callback is None:
 
-            def batch_callback():
+            def batch_callback(*_args):
                 pass
 
         if epoch_callback is None:
 
-            def epoch_callback():
+            def epoch_callback(*_args):
                 pass
 
         epochs = self._config['training']['epochs']
@@ -265,8 +265,8 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
                 minibatch_loss = self._train_step(inputs, target)
                 training_losses.append(minibatch_loss)
                 pbar.update(1)
-                batch_callback()
-            epoch_callback()
+                training_metrics = {'Batch loss': minibatch_loss}
+                batch_callback(training_metrics)
             self._model.eval()
             metrics = self.get_validation_metrics(quiet)
             metrics.update({
@@ -275,6 +275,7 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
                 'Epoch':
                 epoch
             })
+            epoch_callback(metrics)
             pbar.set_postfix(metrics)
         pbar.close()
 
@@ -285,3 +286,20 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
             nn.Module: Model in the training loop.
         """
         return self._model
+
+    def load_state_dict(self, state_dict: Dict):
+        """Loads the provided state dict into the model.
+
+        Args:
+            state_dict (Dict): State dict to be loaded.
+        """
+        self._model.load_state_dict(state_dict)
+
+    def set_model(self, model: nn.Module):
+        """Sets the internal model variable. The model is not
+        cloned, but the reference to the provided module is set instead
+
+        Args:
+            model (Module): PyTorch model.
+        """
+        self._model = model

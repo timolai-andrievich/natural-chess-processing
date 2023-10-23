@@ -1,8 +1,12 @@
 """Training script. Effectively provides a CLI for TrainingLoop class.
 """
 import argparse
+import os
 from typing import TypedDict, Optional
 import warnings
+
+import torch
+from torch import nn
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -17,8 +21,9 @@ class Args(TypedDict):
     """
     config_file_path: str
     device: str
-    log_dir: str
-    checkpoint_load: Optional[str]
+    save_dir: str
+    weights_path: Optional[str]
+    checkpoint_path: str
     quiet: bool
 
 
@@ -36,26 +41,67 @@ def parse_args() -> Args:
                         type=str,
                         dest='config_file_path',
                         required=True)
-    parser.add_argument('-d',
-                        '--device',
+    parser.add_argument(
+        '-d',
+        '--device',
+        type=str,
+        choices=['cuda', 'cpu'],
+        dest='device',
+        default='cpu',
+    )
+    # parser.add_argument('--log-dir', type=str, dest='log_dir', required=False)
+    parser.add_argument('--output-dir',
                         type=str,
-                        choices=['cuda', 'cpu'],
-                        dest='device',
+                        dest='save_dir',
                         required=True)
-    parser.add_argument('--log-dir', type=str, dest='log_dir', required=True)
-    parser.add_argument('--checkpoint', type=str, dest='log_dir', default=None)
+    parser.add_argument('--weights-path',
+                        type=str,
+                        dest='weights_path',
+                        default=None)
+    parser.add_argument('--checkpoint-path',
+                        type=str,
+                        dest='checkpoint_path',
+                        default=None)
     parser.add_argument('--quiet', action='store_true', dest='quiet')
     arguments = parser.parse_args()
     return arguments
+
+
+class ModelSaver:
+
+    def __init__(self, loop: training_loop.TrainingLoop, saving_dir: str):
+        self._loop = loop
+        self._best_accuracy = None
+        self._save_dir = saving_dir
+
+    def _save_model(self, file_name):
+        torch.save(self._loop.get_model(), file_name)
+
+    def save(self, epoch_metrics):
+        self._save_model(f'{self._save_dir}/last.ckpt')
+        accuracy = epoch_metrics['Accuracy']
+        if self._best_accuracy is None or self._best_accuracy < accuracy:
+            self._best_accuracy = accuracy
+            self._save_model(f'{self._save_dir}/best.ckpt')
 
 
 def main():
     """The main function.
     """
     arguments = parse_args()
+    if not os.path.exists(arguments.save_dir):
+        os.mkdir(arguments.save_dir)
     config = training_loop.config.parse_config(arguments.config_file_path)
     loop = training_loop.TrainingLoop(config, arguments.device)
-    loop.run(quiet=arguments.quiet)
+    if arguments.weights_path is not None:
+        state_dict = torch.load(arguments.weights_path)
+        loop.load_state_dict(state_dict)
+    elif arguments.checkpoint_path is not None:
+        checkpoint = torch.load(arguments.checkpoint_path,
+                                map_location=arguments.device)
+        loop.set_model(checkpoint)
+    saver = ModelSaver(loop, arguments.save_dir)
+    loop.run(quiet=arguments.quiet, epoch_callback=saver.save)
 
 
 if __name__ == '__main__':
