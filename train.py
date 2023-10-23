@@ -6,14 +6,11 @@ from typing import TypedDict, Optional, Dict
 import warnings
 
 import torch
-from torch import nn
 import torch.utils.tensorboard as torchboard
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from src import training_loop
-
-# TODO add tensorboard logging
 
 
 class Args(TypedDict):
@@ -68,20 +65,42 @@ def parse_args() -> Args:
 
 
 class ModelSaver:
+    """A simple saver class with logging and saving functionality
+    """
 
     def __init__(self,
                  loop: training_loop.TrainingLoop,
                  saving_dir: str,
                  log_dir: str = None):
+        """Initializes a simple saver class with logging and saving
+        functions.
+
+        Args:
+            loop (TrainingLoop): Training loop with the model inside.
+            saving_dir (str): Directory the models are being saved to.
+            log_dir (str, optional): Tensorboard logging directory, ./runs
+            by default.
+        """
         self._loop = loop
         self._best_accuracy = None
         self._save_dir = saving_dir
         self._writer = torchboard.SummaryWriter(log_dir=log_dir)
 
     def _save_model(self, file_name):
+        """Saves model into a file `file_name`
+
+        Args:
+            file_name (str): The name of the model file.
+        """
         torch.save(self._loop.get_model(), file_name)
 
     def save(self, epoch_metrics: Dict[str, float]):
+        """Saves the model into `last.ckpt`, and into `best.ckpt`
+        if accuracy metric is the best seen.
+
+        Args:
+            epoch_metrics (Dict[str, float]): Metrics dictionary.
+        """
         self._save_model(f'{self._save_dir}/last.ckpt')
         self.log(epoch_metrics)
         accuracy = epoch_metrics['Accuracy']
@@ -90,6 +109,11 @@ class ModelSaver:
             self._save_model(f'{self._save_dir}/best.ckpt')
 
     def log(self, metrics: Dict[str, float]):
+        """Logs metrics into the directory.
+        
+        Args:
+            metrics (Dict[str, float]): Metrics dictionary.
+        """
         for metric, value in metrics.items():
             if metric in {'Step', 'Epoch'}:
                 continue
