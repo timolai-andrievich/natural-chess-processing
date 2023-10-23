@@ -6,3 +6,4 @@ torchmetrics==1.2.0
 torchtext==0.15.2
 tqdm==4.66.1
 pyzstd==0.15.9
+tensorboard=2.15.0

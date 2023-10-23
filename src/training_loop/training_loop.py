@@ -131,10 +131,12 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         """Collates batch of moves, and returns padded tensors with move. 
 
         Args:
-            batch (List[List[int]]): List of sequences of moves represented as indexes.
+            batch (List[List[int]]): List of sequences of
+            moves represented as indexes.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Tensor of inputs, and tensor of targets.
+            Tuple[torch.Tensor, torch.Tensor]: Tensor of inputs,
+            and tensor of targets.
         """
         inputs = []
         targets = []
@@ -258,6 +260,7 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
                          position=0,
                          disable=quiet)
         pbar.set_description('Training loop')
+        step = 0
         for epoch in range(epochs):
             self._model.train()
             training_losses = []
@@ -265,15 +268,22 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
                 minibatch_loss = self._train_step(inputs, target)
                 training_losses.append(minibatch_loss)
                 pbar.update(1)
-                training_metrics = {'Batch loss': minibatch_loss}
+                training_metrics = {
+                    'Epoch': epoch,
+                    'Step': step,
+                    'Batch loss': minibatch_loss
+                }
                 batch_callback(training_metrics)
+                step += 1
             self._model.eval()
             metrics = self.get_validation_metrics(quiet)
             metrics.update({
                 'Training loss':
                 torch.mean(torch.tensor(training_losses)).item(),
                 'Epoch':
-                epoch
+                epoch,
+                'Step':
+                step,
             })
             epoch_callback(metrics)
             pbar.set_postfix(metrics)

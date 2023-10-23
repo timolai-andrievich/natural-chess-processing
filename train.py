@@ -2,18 +2,18 @@
 """
 import argparse
 import os
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Dict
 import warnings
 
 import torch
 from torch import nn
+import torch.utils.tensorboard as torchboard
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from src import training_loop
 
 # TODO add tensorboard logging
-# TODO saving the model
 
 
 class Args(TypedDict):
@@ -49,7 +49,7 @@ def parse_args() -> Args:
         dest='device',
         default='cpu',
     )
-    # parser.add_argument('--log-dir', type=str, dest='log_dir', required=False)
+    parser.add_argument('--log-dir', type=str, dest='log_dir', default=None)
     parser.add_argument('--output-dir',
                         type=str,
                         dest='save_dir',
@@ -69,20 +69,32 @@ def parse_args() -> Args:
 
 class ModelSaver:
 
-    def __init__(self, loop: training_loop.TrainingLoop, saving_dir: str):
+    def __init__(self,
+                 loop: training_loop.TrainingLoop,
+                 saving_dir: str,
+                 log_dir: str = None):
         self._loop = loop
         self._best_accuracy = None
         self._save_dir = saving_dir
+        self._writer = torchboard.SummaryWriter(log_dir=log_dir)
 
     def _save_model(self, file_name):
         torch.save(self._loop.get_model(), file_name)
 
-    def save(self, epoch_metrics):
+    def save(self, epoch_metrics: Dict[str, float]):
         self._save_model(f'{self._save_dir}/last.ckpt')
+        self.log(epoch_metrics)
         accuracy = epoch_metrics['Accuracy']
         if self._best_accuracy is None or self._best_accuracy < accuracy:
             self._best_accuracy = accuracy
             self._save_model(f'{self._save_dir}/best.ckpt')
+
+    def log(self, metrics: Dict[str, float]):
+        for metric, value in metrics.items():
+            if metric in {'Step', 'Epoch'}:
+                continue
+            self._writer.add_scalar(metric, value, metrics['Step'])
+        self._writer.flush()
 
 
 def main():
@@ -100,8 +112,10 @@ def main():
         checkpoint = torch.load(arguments.checkpoint_path,
                                 map_location=arguments.device)
         loop.set_model(checkpoint)
-    saver = ModelSaver(loop, arguments.save_dir)
-    loop.run(quiet=arguments.quiet, epoch_callback=saver.save)
+    saver = ModelSaver(loop, arguments.save_dir, log_dir=arguments.log_dir)
+    loop.run(quiet=arguments.quiet,
+             epoch_callback=saver.save,
+             batch_callback=saver.log)
 
 
 if __name__ == '__main__':
