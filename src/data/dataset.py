@@ -196,24 +196,14 @@ class PositionDataset(torch.utils.data.Dataset):
             quiet (bool): Whether to hide progress bar or not.
         """
         self._vocab = vocab
-        self._games_positions = []
-        self._games_moves = []
-        with tqdm.tqdm(total=len(games),
-                       desc="Encoding positions",
-                       disable=quiet) as pbar:
-            for game in games:
-                if not game:
-                    continue
-                positions, moves = encode_game(game, self._vocab)
-                self._games_positions.append(positions)
-                self._games_moves.append(moves)
-                pbar.update(1)
+        self._games = games.copy()
 
-    # TODO from encoded positions
     # TODO propagate quiet from command line arguments
 
-    def __getitem__(self, index):
-        return self._games_positions[index], self._games_moves[index]
+    def __getitem__(self, index: int):
+        game = self._games[index]
+        positions, games = encode_game(game, self._vocab)
+        return positions, games
 
     def __len__(self):
-        return len(self._games_positions)
+        return len(self._games)

@@ -125,9 +125,13 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         self._train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
-            collate_fn=self._collate_batch)
+            collate_fn=self._collate_batch,
+            num_workers=4)
         self._val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
+            val_dataset,
+            batch_size=batch_size,
+            collate_fn=self._collate_batch,
+            num_workers=4)
         self._validation_pbar = None
 
     def _collate_batch(
