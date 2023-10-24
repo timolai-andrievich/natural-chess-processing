@@ -1,9 +1,9 @@
 [model]
-name = "Baseline"
+name = "PositionBaseline"
 params = { d_model = 128 }
 
 [dataset]
-name = "MoveDataset"
+name = "PositionDataset"
 file = "data/small.txt"
 
 [optimizer]
@@ -11,11 +11,12 @@ name = "Adam"
 params = { lr = 1e-3 }
 
 [scheduler]
-name = "ConstantLR"
-params = { factor = 1.0 }
+name = "CosineAnnealingLR"
+params = { T_max = 18430 }
 
 [training]
-batch_size = 512
-epochs = 30
+batch_size = 32
+epochs = 10
 val_split = 0.1
 sequence_length = 128
+encode_positions = true

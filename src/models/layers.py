@@ -7,11 +7,12 @@ import math
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 class PositionalEncoding(nn.Module):
     """Applies positional encoding by adding pre-computed values to the input.
-    
+
     Based on code from https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     Uses positional encoding formula from "Attention is All You Need":
     PE(pos, 2i) = sin(pos / 10^4^(2i/d_model))
@@ -46,4 +47,36 @@ class PositionalEncoding(nn.Module):
             x: Tensor, shape ``[batch_size, seq_len, embedding_dim]``
         """
         x = x + self.shift_values[:, :x.size(1)]
+        return x
+
+
+class ResidualBlock(nn.Module):
+
+    def __init__(self, channels: int):
+        super().__init__()
+        self.conv1 = nn.Conv2d(channels, channels, 3, 1, 1)
+        self.norm1 = nn.BatchNorm2d(channels)
+        self.conv2 = nn.Conv2d(channels, channels, 3, 1, 1)
+        self.norm2 = nn.BatchNorm2d(channels)
+
+    def forward(self, x):
+        shortcut = x
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.norm1(x)
+        x = self.conv2(x)
+        x = shortcut + x
+        x = F.relu(x)
+        x = self.norm2(x)
+        return x
+
+
+class Downsample(nn.Module):
+
+    def __init__(self, in_channels: int, out_channels: int):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 5, 2, 2)
+
+    def forward(self, x):
+        x = self.conv(x)
         return x
