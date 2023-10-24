@@ -23,7 +23,7 @@ def test_get_model():
             }
         }
     }
-    model = training_loop.get_model(minimal_config)
+    model = training_loop.get_model(minimal_config, vocab_size=1)
     assert isinstance(model, models.Baseline)
 
 
@@ -126,7 +126,7 @@ def test_training_loop():
             """
             self.value = 0
 
-        def increment(self):
+        def increment(self, *_args):
             """Increments counter by one.
             """
             self.value += 1
@@ -147,7 +147,7 @@ def test_training_loop():
 
 
 def test_cuda_training_loop():
-    """Tests `TrainingLoop` class on a CUDA device, if 
+    """Tests `TrainingLoop` class on a CUDA device, if
     one is available.
     """
     if not torch.cuda.is_available():

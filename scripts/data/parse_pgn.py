@@ -40,7 +40,7 @@ def parse_args() -> Args:
         "-i",
         "--pgn",
         dest="pgn_file",
-        default="tiny_db.pgn",
+        required=True,
         help="Input .pgn database.",
     )
     parser.add_argument("-o",
@@ -193,7 +193,7 @@ def update_info(
         time.sleep(1)
 
 
-def main(): # pylint:disable=too-many-locals
+def main():  # pylint:disable=too-many-locals
     """Main function of the scripts. Handles multithreading and multiprocessing.
     """
     args = parse_args()
@@ -294,3 +294,5 @@ def main(): # pylint:disable=too-many-locals
 
 if __name__ == "__main__":
     main()
+
+# TODO file name inference

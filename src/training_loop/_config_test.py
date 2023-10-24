@@ -10,17 +10,20 @@ from . import config
 
 EXAMPLE_CONFIG = {
     'model': {
-        'name': 'Baseline'
+        'name': 'Baseline',
+        'params': {}
     },
     'dataset': {
         'name': 'MoveDataset',
         'file': 'data/small.txt'
     },
     'optimizer': {
-        'name': 'Adam'
+        'name': 'Adam',
+        'params': {}
     },
     'scheduler': {
-        'name': 'CosineAnnealingLR'
+        'name': 'CosineAnnealingLR',
+        'params': {}
     },
     'training': {
         'batch_size': 32,

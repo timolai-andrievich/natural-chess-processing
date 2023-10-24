@@ -6,7 +6,7 @@ from torch import nn
 
 class Baseline(nn.Module):
     """Baseline model.
-    
+
     Consists of embedding layer, one-layer LSTM, and fully connected layer.
     """
 

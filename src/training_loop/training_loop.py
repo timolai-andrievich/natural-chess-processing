@@ -13,17 +13,20 @@ from .. import data
 from .. import models
 
 
-def get_model(config: Dict) -> nn.Module:
+def get_model(config: Dict, vocab_size: int) -> nn.Module:
     """Returns the model with the name matching the one in config.
 
     Args:
         config (Dict): The config dictionary.
+        vocab_size (Vocab): The size of vocabulary used in training loop.
 
     Returns:
         nn.Module: Initialized model.
     """
     model_name = config['model']['name']
     model_params = config['model']['params']
+    if 'vocab_size' not in model_params:
+        model_params['vocab_size'] = vocab_size
     model_class = models.__dict__[model_name]
     return model_class(**model_params)
 
@@ -81,7 +84,7 @@ def get_dataset(config: Dict,
     return dataset_class(games, vocab=vocab)
 
 
-class TrainingLoop:  #pylint: disable=too-many-instance-attributes
+class TrainingLoop:  # pylint: disable=too-many-instance-attributes
     """Trains the model according to parameters passed in config.
     """
 
@@ -97,7 +100,8 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self._device = device
         self._vocab = data.build_vocab()
-        self._model: nn.Module = get_model(config).to(self._device)
+        self._model: nn.Module = get_model(config,
+                                           len(self._vocab)).to(self._device)
         self._optimizer: torch.optim.Optimizer = get_optimizer(
             config, self._model)
         self._scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
@@ -120,16 +124,19 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
             collate_fn=self._collate_batch)
         self._val_loader = torch.utils.data.DataLoader(
             val_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
+        self._validation_pbar = None
 
     def _collate_batch(
             self, batch: List[List[int]]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Collates batch of moves, and returns padded tensors with move. 
 
         Args:
-            batch (List[List[int]]): List of sequences of moves represented as indexes.
+            batch (List[List[int]]): List of sequences of
+            moves represented as indexes.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Tensor of inputs, and tensor of targets.
+            Tuple[torch.Tensor, torch.Tensor]: Tensor of inputs,
+            and tensor of targets.
         """
         inputs = []
         targets = []
@@ -197,11 +204,16 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
                                              self._device)
         total = 0
         accumulated_accuracy = 0
+        accumulated_loss = 0
         self._model.eval()
-        pbar = tqdm.tqdm(total=len(self._val_loader),
-                         position=1,
-                         disable=quiet,
-                         desc='Calculating validation set metrics')
+        if self._validation_pbar is None:
+            self._validation_pbar = tqdm.tqdm(
+                total=len(self._val_loader),
+                position=1,
+                disable=quiet,
+                desc='Calculating validation set metrics')
+        else:
+            self._validation_pbar.reset()
         for inputs, targets in self._val_loader:
             inputs = inputs.to(self._device)
             targets = inputs.to(self._device)
@@ -209,9 +221,14 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
             total += len(inputs)
             accumulated_accuracy += len(inputs) * accuracy(  # pylint:disable=not-callable
                 pred, targets).detach().cpu().item()
-            pbar.update(1)
-        pbar.close()
-        return {'Accuracy': accumulated_accuracy / total}
+            accumulated_loss += self._loss_fn(pred,
+                                              targets).item() * len(inputs)
+            self._validation_pbar.update(1)
+        self._validation_pbar.refresh()
+        return {
+            'Accuracy': accumulated_accuracy / total,
+            'Validation loss': accumulated_loss / total
+        }
 
     def run(self,
             quiet: bool = False,
@@ -223,19 +240,19 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
         Args:
             quiet (bool, optional): Whether to show the progress bar or not.
             Defaults to False.
-            batch_callback (Callable[[], None], optional): Function that should
-            be called after processing a batch.
-            epoch_callback (Callable[[], None], optional): Function that should
-            be called after every epoch.
+            batch_callback (Callable[[Dict[str, float]], None], optional):
+            Function that will be called after processing a batch.
+            epoch_callback (Callable[[Dict[str, float]], None], optional):
+            Function that will be called after every epoch.
         """
         if batch_callback is None:
 
-            def batch_callback():
+            def batch_callback(*_args):
                 pass
 
         if epoch_callback is None:
 
-            def epoch_callback():
+            def epoch_callback(*_args):
                 pass
 
         epochs = self._config['training']['epochs']
@@ -243,6 +260,7 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
                          position=0,
                          disable=quiet)
         pbar.set_description('Training loop')
+        step = 0
         for epoch in range(epochs):
             self._model.train()
             training_losses = []
@@ -250,16 +268,24 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
                 minibatch_loss = self._train_step(inputs, target)
                 training_losses.append(minibatch_loss)
                 pbar.update(1)
-                batch_callback()
-            epoch_callback()
+                training_metrics = {
+                    'Epoch': epoch,
+                    'Step': step,
+                    'Batch loss': minibatch_loss
+                }
+                batch_callback(training_metrics)
+                step += 1
             self._model.eval()
             metrics = self.get_validation_metrics(quiet)
             metrics.update({
                 'Training loss':
                 torch.mean(torch.tensor(training_losses)).item(),
                 'Epoch':
-                epoch
+                epoch,
+                'Step':
+                step,
             })
+            epoch_callback(metrics)
             pbar.set_postfix(metrics)
         pbar.close()
 
@@ -270,3 +296,20 @@ class TrainingLoop:  #pylint: disable=too-many-instance-attributes
             nn.Module: Model in the training loop.
         """
         return self._model
+
+    def load_state_dict(self, state_dict: Dict):
+        """Loads the provided state dict into the model.
+
+        Args:
+            state_dict (Dict): State dict to be loaded.
+        """
+        self._model.load_state_dict(state_dict)
+
+    def set_model(self, model: nn.Module):
+        """Sets the internal model variable. The model is not
+        cloned, but the reference to the provided module is set instead
+
+        Args:
+            model (Module): PyTorch model.
+        """
+        self._model = model
