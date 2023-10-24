@@ -2,6 +2,7 @@
 """
 from typing import Dict, Tuple, List, Optional, Callable
 
+import numpy as np
 import torch
 import tqdm
 from torch import nn
@@ -110,7 +111,10 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         self._config = config
         self._pad_index = self._vocab.get_stoi()['<PAD>']
         self._sos_index = self._vocab.get_stoi()['<SOS>']
-
+        self._encode_positions = False
+        if 'encode_positions' in self._config['training']:
+            self._encode_positions = self._config['training'][
+                'encode_positions']
         # Initialize dataset loaders
         batch_size = self._config['training']['batch_size']
         total_len = len(dataset)
@@ -121,9 +125,13 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         self._train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
-            collate_fn=self._collate_batch)
+            collate_fn=self._collate_batch,
+            num_workers=4)
         self._val_loader = torch.utils.data.DataLoader(
-            val_dataset, batch_size=batch_size, collate_fn=self._collate_batch)
+            val_dataset,
+            batch_size=batch_size,
+            collate_fn=self._collate_batch,
+            num_workers=4)
         self._validation_pbar = None
 
     def _collate_batch(
@@ -141,15 +149,26 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         inputs = []
         targets = []
         seq_len = self._config['training']['sequence_length']
-        for game in batch:
-            game = [self._sos_index] + game
-            game = game[:seq_len + 1]
-            game += [self._pad_index] * (seq_len - len(game))
-            x, y = game[:-1], game[1:]
-            inputs.append(x)
-            targets.append(y)
-        x = torch.tensor(x)
-        y = torch.tensor(y)
+        if not self._encode_positions:
+            for game in batch:
+                game = [self._sos_index] + game
+                game = game[:seq_len + 1]
+                game += [self._pad_index] * (seq_len - len(game) + 1)
+                input, target = game[:-1], game[1:]
+                inputs.append(input)
+                targets.append(target)
+        else:
+            pad_position = np.zeros_like(batch[0][0][0])
+            for positions, moves in batch:
+                positions = positions[:seq_len]
+                positions += [pad_position] * (seq_len - len(positions))
+                moves = moves[:seq_len]
+                moves += [self._pad_index] * (seq_len - len(moves))
+                inputs.append(positions)
+                targets.append(moves)
+            inputs = np.array(inputs)
+        x = torch.tensor(inputs)
+        y = torch.tensor(targets)
         return x, y
 
     def _loss_fn(self, inputs: torch.Tensor,
@@ -164,6 +183,8 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         Returns:
             torch.Tensor: Mean crossentropy over batch.
         """
+        inputs = torch.flatten(inputs, end_dim=-2)
+        target = torch.flatten(target)
         return nn.functional.cross_entropy(inputs,
                                            target,
                                            ignore_index=self._pad_index)
@@ -216,8 +237,10 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
             self._validation_pbar.reset()
         for inputs, targets in self._val_loader:
             inputs = inputs.to(self._device)
-            targets = inputs.to(self._device)
+            targets = targets.to(self._device)
             pred = self._model(inputs)
+            pred = torch.flatten(pred, end_dim=-2)
+            targets = torch.flatten(targets)
             total += len(inputs)
             accumulated_accuracy += len(inputs) * accuracy(  # pylint:disable=not-callable
                 pred, targets).detach().cpu().item()

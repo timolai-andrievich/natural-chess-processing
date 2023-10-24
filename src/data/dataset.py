@@ -7,11 +7,12 @@ import numpy as np
 import torch
 import torch.utils.data
 import torchtext
+import tqdm
 
 
 class MoveDataset(torch.utils.data.Dataset):
     """A dataset of chess uci moves.
-    
+
     Contains sequences of integers corresponding to moves.
     """
 
@@ -86,7 +87,7 @@ def encode_position(position: chess.Board) -> np.ndarray:
     14. Plane filled with ones to help NN find edges
     15. Plane filled with ones if the board was flipped
     16. Plane filled with ones if the game is over
-    
+
     Args:
         position (chess.Board): Posiiton to be encoded.
     """
@@ -173,14 +174,16 @@ def encode_game(
 
 class PositionDataset(torch.utils.data.Dataset):
     """A dataset of chess position and moves made from them.
-    
     Contains encoded positions and corresponding moves.
     Positions are encoded similar to how Leela Chess Zero chess
     engine encodes them: as a stack of bitboards. See source
     code for details.
     """
 
-    def __init__(self, games: List[str], vocab: torchtext.vocab.Vocab):
+    def __init__(self,
+                 games: List[str],
+                 vocab: torchtext.vocab.Vocab,
+                 quiet: bool = False):
         """Initializes dataset from the passed games. Games are not
         padded and may have varying length. When indexed with index `i`,
         returns tuple of list encoded positions and list of encoded
@@ -190,19 +193,17 @@ class PositionDataset(torch.utils.data.Dataset):
             games (List[str]): The list of strings, containing
             chess moves in uci format, separated by spaces.
             vocab (Vocab): Vocabulary used to tokenize moves.
+            quiet (bool): Whether to hide progress bar or not.
         """
         self._vocab = vocab
-        self._games_positions = []
-        self._games_moves = []
-        for game in games:
-            if not game:
-                continue
-            positions, moves = encode_game(game, self._vocab)
-            self._games_positions.append(positions)
-            self._games_moves.append(moves)
+        self._games = games.copy()
 
-    def __getitem__(self, index):
-        return self._games_positions[index], self._games_moves[index]
+    # TODO propagate quiet from command line arguments
+
+    def __getitem__(self, index: int):
+        game = self._games[index]
+        positions, games = encode_game(game, self._vocab)
+        return positions, games
 
     def __len__(self):
-        return len(self._games_positions)
+        return len(self._games)

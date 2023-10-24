@@ -19,7 +19,6 @@ class Args(TypedDict):
     config_file_path: str
     device: str
     save_dir: str
-    weights_path: Optional[str]
     checkpoint_path: str
     quiet: bool
 
@@ -33,31 +32,31 @@ def parse_args() -> Args:
         Args: Parsed arguments.
     """
     parser = argparse.ArgumentParser('train.py')
-    parser.add_argument('-c',
-                        '--config',
+    parser.add_argument('config_file_path',
+                        metavar='config',
                         type=str,
-                        dest='config_file_path',
-                        required=True)
-    parser.add_argument(
-        '-d',
-        '--device',
-        type=str,
-        choices=['cuda', 'cpu'],
-        dest='device',
-        default='cpu',
-    )
-    parser.add_argument('--log-dir', type=str, dest='log_dir', default=None)
+                        help='Path to the config file')
+    parser.add_argument('-d',
+                        '--device',
+                        type=str,
+                        choices=['cuda', 'cpu'],
+                        dest='device',
+                        default='cpu',
+                        help='Device to train the model on.')
+    parser.add_argument('--log-dir',
+                        type=str,
+                        dest='log_dir',
+                        default=None,
+                        help='The log directory for tensorboard runs.')
     parser.add_argument('--output-dir',
                         type=str,
                         dest='save_dir',
-                        required=True)
-    parser.add_argument('--weights-path',
-                        type=str,
-                        dest='weights_path',
-                        default=None)
+                        help='Directory the checkpoints are saved into.',
+                        default='.')
     parser.add_argument('--checkpoint-path',
                         type=str,
                         dest='checkpoint_path',
+                        help='File contaning a PyTorch model checkpoint.',
                         default=None)
     parser.add_argument('--quiet', action='store_true', dest='quiet')
     arguments = parser.parse_args()
@@ -110,7 +109,7 @@ class ModelSaver:
 
     def log(self, metrics: Dict[str, float]):
         """Logs metrics into the directory.
-        
+
         Args:
             metrics (Dict[str, float]): Metrics dictionary.
         """
@@ -129,10 +128,7 @@ def main():
         os.mkdir(arguments.save_dir)
     config = training_loop.config.parse_config(arguments.config_file_path)
     loop = training_loop.TrainingLoop(config, arguments.device)
-    if arguments.weights_path is not None:
-        state_dict = torch.load(arguments.weights_path)
-        loop.load_state_dict(state_dict)
-    elif arguments.checkpoint_path is not None:
+    if arguments.checkpoint_path is not None:
         checkpoint = torch.load(arguments.checkpoint_path,
                                 map_location=arguments.device)
         loop.set_model(checkpoint)
@@ -144,3 +140,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+# TODO saving optmizer into checkpoint
