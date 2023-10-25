@@ -1,0 +1,21 @@
+[model]
+name = "Baseline"
+params = { d_model = 128 }
+
+[dataset]
+name = "MoveDataset"
+file = "data/small.txt"
+
+[optimizer]
+name = "Adam"
+params = { lr = 1e-3 }
+
+[scheduler]
+name = "ConstantLR"
+params = { factor = 1.0 }
+
+[training]
+batch_size = 512
+epochs = 30
+val_split = 0.1
+sequence_length = 128
