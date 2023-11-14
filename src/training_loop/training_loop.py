@@ -1,5 +1,6 @@
 """Module with training loop logic.
 """
+import os
 from typing import Dict, Tuple, List, Optional, Callable
 
 import numpy as np
@@ -123,24 +124,18 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         self.train_dataset, self.val_dataset = torch.utils.data.random_split(
             dataset, [train_len, val_len])
         self.batch_size = batch_size
-        self._train_loader = None
-        self._val_loader = None
-        self._reset_loaders()
-        self._validation_pbar = None
-
-    def _reset_loaders(self):
-        del self._train_loader
-        del self._val_loader
+        num_workers = 4 if os.name == 'posix' else 0
         self._train_loader = torch.utils.data.DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             collate_fn=self._collate_batch,
-            num_workers=0)
+            num_workers=num_workers)
         self._val_loader = torch.utils.data.DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
             collate_fn=self._collate_batch,
-            num_workers=0)
+            num_workers=num_workers)
+        self._validation_pbar = None
 
     def _collate_batch(
             self, batch: List[List[int]]) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -294,7 +289,6 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         step = 0
         for epoch in range(epochs):
             self._model.train()
-            self._reset_loaders()
             training_losses = []
             for inputs, target in self._train_loader:
                 minibatch_loss = self._train_step(inputs, target)

@@ -12,7 +12,7 @@ params = { lr = 1e-3 }
 
 [scheduler]
 name = "CosineAnnealingLR"
-params = { T_max = 18430 }
+params = { T_max = 34130 }
 
 [training]
 batch_size = 32
