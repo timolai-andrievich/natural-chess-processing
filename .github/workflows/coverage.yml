@@ -3,7 +3,8 @@ name: Generate Coverage Badge
 on:
   push:
     branches:
-      - coverage-badge
+      - dev
+      - main
 
 jobs:
   coverage:
