@@ -139,7 +139,7 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
 
     def _collate_batch(
             self, batch: List[List[int]]) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Collates batch of moves, and returns padded tensors with move. 
+        """Collates batch of moves, and returns padded tensors with move.
 
         Args:
             batch (List[List[int]]): List of sequences of
@@ -157,8 +157,8 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
                 game = [self._sos_index] + game
                 game = game[:seq_len + 1]
                 game += [self._pad_index] * (seq_len - len(game) + 1)
-                input, target = game[:-1], game[1:]
-                inputs.append(input)
+                input_, target = game[:-1], game[1:]
+                inputs.append(input_)
                 targets.append(target)
         else:
             pad_position = np.zeros_like(batch[0][0][0])

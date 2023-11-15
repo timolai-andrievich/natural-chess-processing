@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.utils.data
 import torchtext
-import tqdm
 
 
 class MoveDataset(torch.utils.data.Dataset):
@@ -180,10 +179,7 @@ class PositionDataset(torch.utils.data.Dataset):
     code for details.
     """
 
-    def __init__(self,
-                 games: List[str],
-                 vocab: torchtext.vocab.Vocab,
-                 quiet: bool = False):
+    def __init__(self, games: List[str], vocab: torchtext.vocab.Vocab):
         """Initializes dataset from the passed games. Games are not
         padded and may have varying length. When indexed with index `i`,
         returns tuple of list encoded positions and list of encoded
@@ -197,8 +193,6 @@ class PositionDataset(torch.utils.data.Dataset):
         """
         self._vocab = vocab
         self._games = games.copy()
-
-    # TODO propagate quiet from command line arguments
 
     def __getitem__(self, index: int):
         game = self._games[index]
