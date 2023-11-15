@@ -90,13 +90,20 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
     """Trains the model according to parameters passed in config.
     """
 
-    def __init__(self, config: Dict, device: Optional[str] = None):
+    def __init__(self,
+                 config: Dict,
+                 device: Optional[str] = None,
+                 num_workers: int = None):
         """Trains the model according to parameters passed in config.
 
         Args:
             config (Dict): Training config.
             device (Optional[str]): Device to run the model on. By default,
             choses CUDA if available, cpu otherwise.
+            num_workers (int): Number of workers to use for loading data.
+            If 0, data is loaded in the main thread. Defaults to 4 for
+            posix systems, 0 for others. Values greater than 0 may not
+            work for non-linux systems.
         """
         if device is None:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -124,7 +131,8 @@ class TrainingLoop:  # pylint: disable=too-many-instance-attributes
         self.train_dataset, self.val_dataset = torch.utils.data.random_split(
             dataset, [train_len, val_len])
         self.batch_size = batch_size
-        num_workers = 4 if os.name == 'posix' else 0
+        if num_workers is None:
+            num_workers = 4 if os.name == 'posix' else 0
         self._train_loader = torch.utils.data.DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,

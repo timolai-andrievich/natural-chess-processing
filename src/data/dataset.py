@@ -192,7 +192,7 @@ class PositionDataset(torch.utils.data.Dataset):
             quiet (bool): Whether to hide progress bar or not.
         """
         self._vocab = vocab
-        self._games = games.copy()
+        self._games = list(filter(lambda game: game.strip() != '', games))
 
     def __getitem__(self, index: int):
         game = self._games[index]
