@@ -1,5 +1,7 @@
 # Natural Chess Processing
 
+![Coverage](assets/coverage.svg)
+
 Repository for the Generative Artificial Intelligence Fall 2023 course. Explores the advantages and disadvantages of applying using natural language processing techniques to chess games.
 
 # Repository Structure
