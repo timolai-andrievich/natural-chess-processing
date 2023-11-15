@@ -1,0 +1,22 @@
+[model]
+name = "PositionTransformer"
+params = { d_model = 128, nhead = 2, num_encoder_layers = 3, dim_feedforward = 512, dropout = 0.1, board_planes = 17, num_blocks = 12, feature_channels = 16 }
+
+[dataset]
+name = "PositionDataset"
+file = "data/small.txt"
+
+[optimizer]
+name = "Adam"
+params = { lr = 1e-3 }
+
+[scheduler]
+name = "CosineAnnealingLR"
+params = { T_max = 34130 }
+
+[training]
+batch_size = 32
+epochs = 10
+val_split = 0.1
+sequence_length = 128
+encode_positions = true
