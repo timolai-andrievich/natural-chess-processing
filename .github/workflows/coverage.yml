@@ -1,0 +1,45 @@
+name: Generate Coverage Badge
+
+on:
+  push:
+    branches:
+      - coverage-badge
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest coverage coverage-badge
+
+      - name: Run tests and generate coverage report
+        run: |
+          coverage run -m pytest src
+
+      - name: Generate coverage badge
+        run: |
+          mkdir -p assets
+          coverage-badge -o assets/coverage.svg
+      
+      - name: Commit coverage badge
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add assets/coverage.svg
+          git commit -m "Updated coverage badge" || true
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
