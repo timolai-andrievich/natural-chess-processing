@@ -21,7 +21,7 @@ OPTIONS = {
     'ModelFile':
     OrderedDict(name='ModelFile',
                 type='string',
-                default='models/position/last.ckpt')
+                default='models/position_transformer/last.ckpt')
 }
 
 
@@ -91,11 +91,11 @@ class PositionEngine:
         stdout.write(f'info pv {move}\n')
         match suggested_result:
             case '1-0':
-                stdout.write('info string white wins')
+                stdout.write('info string white wins\n')
             case '0-1':
-                stdout.write('info string black wins')
+                stdout.write('info string black wins\n')
             case '1/2-1/2':
-                stdout.write('info string draw suggested')
+                stdout.write('info string draw suggested\n')
         if 'infinite' not in tokens:
             stdout.write(f'bestmove {move}\n')
         stdout.flush()
@@ -195,7 +195,7 @@ class PositionEngine:
                         pass
                     case _otherwise:
                         raise NoSuchCommand()
-            except Exception:
+            except Exception as e:
                 stdout.write(f'No such command: {command}\n')
                 stdout.flush()
 

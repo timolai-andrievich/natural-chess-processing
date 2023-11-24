@@ -39,37 +39,53 @@ class Baseline(nn.Module):
 
 
 class PositionBaseline(nn.Module):
+    """LSTM model that embeds positions instead of moves.
+    """
 
-    def __init__(self,
-                 d_model: int,
-                 vocab_size: int,
-                 board_planes: int = 17,
-                 num_blocks: int = 12,
-                 feature_channels: int = 16):
+    def __init__(  # pylint: disable=too-many-arguments
+            self,
+            d_model: int,
+            vocab_size: int,
+            board_planes: int = 17,
+            num_blocks: int = 12,
+            feature_channels: int = 16):
+        """LSTM model that uses position embeddings instead of move embeddings
+
+        Args:
+            d_model (int): Number of features in embeddings.
+            vocab_size (int): Vocabulary size.
+            board_planes (int): Number of planes per one position in
+            model inputs.
+            num_blocks (int): The number of residual blocks in the embedding
+            part of the model.
+            feature_channels (int): The width of residual blocks in the
+            embedding part of the model.
+        """
 
         super().__init__()
 
-        embedding_modules = []
-        embedding_modules.append(
-            nn.Conv2d(board_planes, feature_channels, 3, 1, 1))
-        for _ in range(num_blocks):
-            embedding_modules.append(layers.ResidualBlock(feature_channels))
-        embedding_modules.append(nn.AdaptiveAvgPool2d((1, 1)))
-        embedding_modules.append(nn.Flatten())
-        embedding_modules.append(nn.Linear(feature_channels, d_model))
-
-        self.embed = nn.Sequential(*embedding_modules)
+        self.embed = layers.PositionEmbedding(board_planes, num_blocks,
+                                              feature_channels, d_model)
         self.lstm = nn.LSTM(input_size=d_model,
                             hidden_size=d_model,
                             batch_first=True)
         self.fc = nn.Linear(d_model, vocab_size)
 
-    def forward(self, x):
-        n, s, c, h, w = x.shape
-        x = x.view(n * s, c, h, w)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forwards the input through the model.
+
+        Args:
+            x (Tensor): Input tensor, shape `(n, s, c, h, w)`, where:
+            - `n` - batch dimension
+            - `s` - sequence length
+            - `c` - channels dimension (should be equal to `board_planes`)
+            - `h` - the height of the board (should be 8)
+            - `w` - the width of the board (should be 8)
+
+        Returns:
+            Tensor: Output tensor.
+        """
         x = self.embed(x)
-        _, d = x.shape
-        x = x.view(n, s, d)
         x, _ = self.lstm(x)
         x = self.fc(x)
         return x

@@ -1,6 +1,8 @@
 # Natural Chess Processing
 
-Repository for the Generative Artificial Intelligence Fall 2023 course. Explores the advantages and disadvantages of applying using natural language processing techniques to chess games. See [notebook](generate.ipynb) for an example of a generated game.
+![Coverage](assets/coverage.svg)
+
+Repository for the Generative Artificial Intelligence Fall 2023 course. Explores the advantages and disadvantages of applying using natural language processing techniques to chess games.
 
 # Repository Structure
 
@@ -13,6 +15,12 @@ Repository for the Generative Artificial Intelligence Fall 2023 course. Explores
 - `models` - Pretrained model checkpoints.
 - `train.py` - Training script.
 - `engine.py` - UCI engine script.
+
+
+# Requirements
+
+- Python 3.11
+- Libraries, specified in `requirements.txt`
 
 # How to Run
 0. *(Optional)* Create a virtual environment
@@ -36,29 +44,16 @@ python -m pip install -r requirements.txt
 
 # How to Train
 
-1. Acquire training data.
-    1. Download a chess .pgn database
-        - Download from [Lichess open database](https://database.lichess.org/) and unpack the downloaded database.
-        - Download using `scripts/data/download.py`:
-        ```bash
-        python scripts/data/download.py --small
-        ``` 
-        (Downloads a database from Lichess open database and unpacks it.)
-    2. Convert database into a .txt file with moves in UCI format:
-    ```bash
-    python scripts/data/parse_pgn.py --pgn <downloaded database> -o <output file>
-    ```
-
-2. Install requirements from `requirements.txt`
+1. Install requirements from `requirements.txt`
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-3. Modify/create the config file
+2. Modify/create the config file
     - Examples are available in `config_files/`
-    - Make sure that dataset file path points to the .txt file acquired in the first step.
+    - Make sure to specify the correct file path to the dataset
 
-4. Run `train.py`
+3. Run `train.py`
     - Example command: 
     ```bash
     python train.py config_files/position_baseline.toml

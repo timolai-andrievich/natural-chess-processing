@@ -7,7 +7,6 @@ import numpy as np
 import torch
 import torch.utils.data
 import torchtext
-import tqdm
 
 
 class MoveDataset(torch.utils.data.Dataset):
@@ -125,7 +124,7 @@ def encode_position(position: chess.Board) -> np.ndarray:
     if position.has_legal_en_passant():
         en_passant_square = position.ep_square
         en_passant_file = chess.square_file(en_passant_square)
-        result[0, 7, en_passant_file] = 1
+        result[0, 0, en_passant_file] = 1
         result[6, 7, en_passant_file] = 1
 
     result[12, :, :] = bitboard_to_2d_bitboard(position.castling_rights)
@@ -180,10 +179,7 @@ class PositionDataset(torch.utils.data.Dataset):
     code for details.
     """
 
-    def __init__(self,
-                 games: List[str],
-                 vocab: torchtext.vocab.Vocab,
-                 quiet: bool = False):
+    def __init__(self, games: List[str], vocab: torchtext.vocab.Vocab):
         """Initializes dataset from the passed games. Games are not
         padded and may have varying length. When indexed with index `i`,
         returns tuple of list encoded positions and list of encoded
@@ -196,9 +192,7 @@ class PositionDataset(torch.utils.data.Dataset):
             quiet (bool): Whether to hide progress bar or not.
         """
         self._vocab = vocab
-        self._games = games.copy()
-
-    # TODO propagate quiet from command line arguments
+        self._games = list(filter(lambda game: game.strip() != '', games))
 
     def __getitem__(self, index: int):
         game = self._games[index]

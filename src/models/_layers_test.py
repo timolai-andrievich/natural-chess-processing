@@ -16,3 +16,21 @@ def test_positional_encoding():
     dummy_outputs = positional_encoding(dummy_inputs)
     assert dummy_outputs.shape == dummy_inputs.shape
     assert torch.any(dummy_outputs != dummy_inputs)
+
+
+def test_downsample_block():
+    """Tests `Downsample` class.
+    """
+    downsample = layers.Downsample(16, 32)
+    dummy_inputs = torch.randn((32, 16, 8, 8))
+    dummy_outputs = downsample(dummy_inputs)
+    assert dummy_outputs.shape == (32, 32, 4, 4)
+
+
+def test_residual_block():
+    """Tests `ResidualBlock` class.
+    """
+    residual = layers.ResidualBlock(16)
+    dummy_inputs = torch.randn((32, 16, 8, 8))
+    dummy_outputs = residual(dummy_inputs)
+    assert dummy_outputs.shape == dummy_inputs.shape

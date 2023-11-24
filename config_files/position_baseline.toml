@@ -1,10 +1,10 @@
 [model]
 name = "PositionBaseline"
-params = { d_model = 128 }
+params = { d_model = 128, feature_channels = 32, num_blocks = 10 }
 
 [dataset]
 name = "PositionDataset"
-file = "data/small.txt"
+file = "data/medium.txt"
 
 [optimizer]
 name = "Adam"
@@ -12,11 +12,11 @@ params = { lr = 1e-3 }
 
 [scheduler]
 name = "CosineAnnealingLR"
-params = { T_max = 18430 }
+params = { T_max = 29483 }
 
 [training]
 batch_size = 32
-epochs = 10
+epochs = 1
 val_split = 0.1
 sequence_length = 128
 encode_positions = true
