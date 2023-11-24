@@ -124,7 +124,7 @@ def encode_position(position: chess.Board) -> np.ndarray:
     if position.has_legal_en_passant():
         en_passant_square = position.ep_square
         en_passant_file = chess.square_file(en_passant_square)
-        result[0, 7, en_passant_file] = 1
+        result[0, 0, en_passant_file] = 1
         result[6, 7, en_passant_file] = 1
 
     result[12, :, :] = bitboard_to_2d_bitboard(position.castling_rights)
