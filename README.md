@@ -16,6 +16,12 @@ Repository for the Generative Artificial Intelligence Fall 2023 course. Explores
 - `train.py` - Training script.
 - `engine.py` - UCI engine script.
 
+
+# Requirements
+
+- Python 3.11
+- Libraries, specified in `requirements.txt`
+
 # How to Run
 0. *(Optional)* Create a virtual environment
     1. Create the virtual environment
@@ -45,6 +51,7 @@ python -m pip install -r requirements.txt
 
 2. Modify/create the config file
     - Examples are available in `config_files/`
+    - Make sure to specify the correct file path to the dataset
 
 3. Run `train.py`
     - Example command: 

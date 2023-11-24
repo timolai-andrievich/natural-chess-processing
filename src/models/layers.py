@@ -142,9 +142,9 @@ class PositionEmbedding(nn.Module):
             nn.Conv2d(board_planes, feature_channels, 3, 1, 1))
         for _ in range(num_blocks):
             embedding_modules.append(ResidualBlock(feature_channels))
-        embedding_modules.append(nn.AdaptiveAvgPool2d((1, 1)))
         embedding_modules.append(nn.Flatten())
-        embedding_modules.append(nn.Linear(feature_channels, embedding_dim))
+        embedding_modules.append(
+            nn.Linear(feature_channels * 8 * 8, embedding_dim))
         self.body = nn.Sequential(*embedding_modules)
 
     def forward(self, x):
